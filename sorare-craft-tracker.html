@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorare Craft Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #22222e;
+    --accent: #c8ff4a;
+    --accent2: #4af0c8;
+    --red: #ff4a6b;
+    --text: #e8e8f0;
+    --muted: #5a5a72;
+    --low: #4af0c8;
+    --mid: #f0b84a;
+    --high: #ff4a6b;
+    /* Scarcity colours */
+    --limited: #f0c84a;
+    --rare: #ff5a6e;
+    --sr: #6ab0ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,255,74,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,255,74,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: -1px;
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.green::before { background: var(--accent); }
+  .stat-card.cyan::before { background: var(--accent2); }
+  .stat-card.pos::before { background: var(--accent); }
+  .stat-card.neg::before { background: var(--red); }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .stat-value.profit { color: var(--accent); }
+  .stat-value.loss { color: var(--red); }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Layout grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* Form */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: sticky;
+    top: 20px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+
+  input[type="text"],
+  input[type="number"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(200,255,74,0.1);
+  }
+
+  input::placeholder { color: var(--muted); }
+
+  /* Input with prefix */
+  .input-wrap {
+    position: relative;
+  }
+
+  .input-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  .input-wrap input {
+    padding-left: 28px;
+  }
+
+  .btn-submit {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn-submit:hover { opacity: 0.9; }
+  .btn-submit:active { transform: scale(0.98); }
+
+  /* Right panel */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Chart */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .chart-container {
+    height: 180px;
+    margin-top: 12px;
+  }
+
+  /* Crafts list */
+  .list-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .count-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 0 -4px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  thead th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(34,34,46,0.5);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover {
+    background: var(--surface2);
+  }
+
+  tbody td {
+    padding: 12px 12px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .player-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .date-cell {
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .value-cell {
+    font-weight: 500;
+  }
+
+  .profit-cell { color: var(--accent); font-weight: 600; }
+  .loss-cell { color: var(--red); font-weight: 600; }
+
+  /* Tier badge */
+  .tier {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tier-low { background: rgba(74,240,200,0.1); color: var(--low); border: 1px solid rgba(74,240,200,0.3); }
+  .tier-mid { background: rgba(240,184,74,0.1); color: var(--mid); border: 1px solid rgba(240,184,74,0.3); }
+  .tier-high { background: rgba(255,74,107,0.1); color: var(--high); border: 1px solid rgba(255,74,107,0.3); }
+
+  /* Delete btn */
+  .btn-del {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .btn-del:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  .empty-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  /* Tier legend */
+  .tier-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: #0a0a0f;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    z-index: 100;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Draw type toggle */
+  .draw-toggle {
+    display: flex;
+    gap: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px;
+  }
+
+  .draw-btn {
+    flex: 1;
+    padding: 7px 10px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  .draw-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .draw-btn.active.std { color: var(--accent2); }
+  .draw-btn.active.spc { color: var(--accent); }
+
+  /* Clue checkboxes */
+  .clues-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-top: 2px;
+  }
+
+  .clue-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 7px 9px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    user-select: none;
+  }
+
+  .clue-item:hover { border-color: var(--muted); }
+  .clue-item.checked { border-color: var(--accent); }
+
+  .clue-item input[type="checkbox"] {
+    width: 13px; height: 13px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .clue-label {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+
+  .clue-item.checked .clue-label { color: var(--text); }
+
+  .clue-cost {
+    margin-left: auto;
+    font-size: 9px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* Essence preview */
+  .essence-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 9px 12px;
+    margin-top: 4px;
+  }
+
+  .essence-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .essence-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* Analytics cards */
+  .analytics-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 480px) {
+    .analytics-grid { grid-template-columns: 1fr; }
+  }
+
+  .an-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .an-block-title {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .an-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 5px;
+    font-size: 11px;
+  }
+
+  .an-key { color: var(--muted); }
+  .an-val { font-weight: 500; color: var(--text); }
+  .an-val.accent { color: var(--accent); }
+  .an-val.cyan { color: var(--accent2); }
+
+  /* Filter tabs */
+  .filter-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-tab {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  .filter-tab:hover { border-color: var(--muted); color: var(--text); }
+  .filter-tab.active { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+
+  /* Draw type badges in table */
+  .draw-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .draw-std { background: rgba(74,240,200,0.1); color: var(--accent2); border: 1px solid rgba(74,240,200,0.3); }
+  .draw-spc { background: rgba(200,255,74,0.1); color: var(--accent); border: 1px solid rgba(200,255,74,0.3); }
+
+  /* Scarcity toggle */
+  .scarcity-toggle {
+    display: flex;
+    gap: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px;
+  }
+
+  .sc-btn {
+    flex: 1;
+    padding: 7px 6px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+  }
+
+  .sc-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .sc-btn.active.lim  { color: var(--limited); border-color: rgba(240,200,74,0.4); }
+  .sc-btn.active.rar  { color: var(--rare);    border-color: rgba(255,90,110,0.4); }
+  .sc-btn.active.sr   { color: var(--sr);      border-color: rgba(106,176,255,0.4); }
+
+  /* Scarcity badges in table */
+  .sc-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .sc-limited { background: rgba(240,200,74,0.12); color: var(--limited); border: 1px solid rgba(240,200,74,0.35); }
+  .sc-rare    { background: rgba(255,90,110,0.12); color: var(--rare);    border: 1px solid rgba(255,90,110,0.35); }
+  .sc-sr      { background: rgba(106,176,255,0.12); color: var(--sr);     border: 1px solid rgba(106,176,255,0.35); }
+
+  /* Scarcity analytics panels */
+  .scarcity-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .sc-panel {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .sc-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .sc-panel-header:hover { background: var(--surface2); }
+
+  .sc-panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .sc-panel-title.lim { color: var(--limited); }
+  .sc-panel-title.rar { color: var(--rare); }
+  .sc-panel-title.sr  { color: var(--sr); }
+
+  .sc-panel-chevron {
+    color: var(--muted);
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+
+  .sc-panel.open .sc-panel-chevron { transform: rotate(180deg); }
+
+  .sc-panel-body {
+    display: none;
+    padding: 12px 14px;
+  }
+
+  .sc-panel.open .sc-panel-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+
+  .sc-stat { display: flex; flex-direction: column; gap: 2px; }
+  .sc-stat-label { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+  .sc-stat-value { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+  .sc-stat-value.lim { color: var(--limited); }
+  .sc-stat-value.rar { color: var(--rare); }
+  .sc-stat-value.sr  { color: var(--sr); }
+
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .row-new { animation: rowIn 0.3s ease forwards; }
+
+  /* ── Auth screen ─────────────────────────────────────────────── */
+  #auth-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  #auth-screen::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,255,74,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,255,74,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .auth-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 380px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .auth-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .auth-logo span { color: var(--accent); }
+
+  .auth-sub {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 32px;
+  }
+
+  .auth-tabs {
+    display: flex;
+    gap: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px;
+    margin-bottom: 24px;
+  }
+
+  .auth-tab {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.05em;
+  }
+
+  .auth-tab.active {
+    background: var(--surface2);
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .auth-form-group {
+    margin-bottom: 14px;
+  }
+
+  .auth-form-group label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .auth-form-group input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .auth-form-group input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(200,255,74,0.1);
+  }
+
+  .auth-form-group input::placeholder { color: var(--muted); }
+
+  .btn-auth {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn-auth:hover { opacity: 0.9; }
+  .btn-auth:active { transform: scale(0.98); }
+  .btn-auth:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .auth-error {
+    background: rgba(255,74,107,0.1);
+    border: 1px solid rgba(255,74,107,0.3);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--red);
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* User bar in header */
+  .user-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .user-email {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .btn-logout {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- ── Auth Screen ───────────────────────────────────────────────────────── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">CRAFT<span>_</span>LOG</div>
+    <div class="auth-sub">Sorare Card Craft Tracker</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"    onclick="switchTab('login')">Login</button>
+      <button class="auth-tab"        id="tab-register" onclick="switchTab('register')">Registrieren</button>
+    </div>
+
+    <div id="auth-login">
+      <div class="auth-form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="deine@email.de" autocomplete="email">
+      </div>
+      <div class="auth-form-group">
+        <label>Passwort</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+        <input type="checkbox" id="remember-me" style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer">
+        <label for="remember-me" style="font-size:10px;letter-spacing:0.1em;color:var(--muted);cursor:pointer;text-transform:uppercase;margin:0">Angemeldet bleiben</label>
+      </div>
+      <button class="btn-auth" id="btn-login" onclick="doLogin()">Einloggen</button>
+      <div class="auth-error" id="login-error"></div>
+    </div>
+
+    <div id="auth-register" style="display:none">
+      <div class="auth-form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="deine@email.de" autocomplete="email">
+      </div>
+      <div class="auth-form-group">
+        <label>Passwort</label>
+        <input type="password" id="reg-password" placeholder="min. 6 Zeichen" autocomplete="new-password">
+      </div>
+      <button class="btn-auth" id="btn-register" onclick="doRegister()">Account erstellen</button>
+      <div class="auth-error" id="register-error"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
+
+  <header>
+    <div class="brand">
+      <span class="brand-label">Dashboard</span>
+      <h1>CRAFT<span>_</span>LOG</h1>
+      <p class="subtitle">Sorare Card Craft Tracker</p>
+    </div>
+    <div class="user-bar">
+      <span class="user-email" id="user-email-display"></span>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-card green">
+      <div class="stat-label">Total Crafts</div>
+      <div class="stat-value" id="stat-count">0</div>
+      <div class="stat-sub">all time</div>
+    </div>
+    <div class="stat-card cyan">
+      <div class="stat-label">Avg Value (EV)</div>
+      <div class="stat-value" id="stat-ev">€0.00</div>
+      <div class="stat-sub">per craft</div>
+    </div>
+    <div class="stat-card cyan">
+      <div class="stat-label">Total Value</div>
+      <div class="stat-value" id="stat-total-val">€0.00</div>
+      <div class="stat-sub">market value</div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Form -->
+    <div class="form-card">
+      <div class="card-title">// New Craft</div>
+
+      <div class="form-group">
+        <label>Draw Type</label>
+        <div class="draw-toggle">
+          <button class="draw-btn std active" id="btn-std" onclick="setDraw('standard')">⬡ Standard</button>
+          <button class="draw-btn spc" id="btn-spc" onclick="setDraw('special')">★ Special</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Scarcity</label>
+        <div class="scarcity-toggle">
+          <button class="sc-btn lim active" id="sc-limited"  onclick="setScarcity('limited')">◆ Limited</button>
+          <button class="sc-btn rar"        id="sc-rare"     onclick="setScarcity('rare')">◆ Rare</button>
+          <button class="sc-btn sr"         id="sc-sr"       onclick="setScarcity('super_rare')">◆ SR</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Player Name</label>
+        <input type="text" id="inp-name" placeholder="e.g. Erling Haaland" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label>Market Value (€)</label>
+        <div class="input-wrap">
+          <span class="input-prefix">€</span>
+          <input type="number" id="inp-value" placeholder="0.00" min="0" step="0.01">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Clues Used</label>
+        <div class="clues-grid">
+          <label class="clue-item" id="clue-best5">
+            <input type="checkbox" id="chk-best5" onchange="updateClues()">
+            <span class="clue-label">Best 5</span>
+            <span class="clue-cost" id="cost-best5">+200</span>
+          </label>
+          <label class="clue-item" id="clue-nat">
+            <input type="checkbox" id="chk-nat" onchange="updateClues()">
+            <span class="clue-label">Nationality</span>
+            <span class="clue-cost" id="cost-nat">+50</span>
+          </label>
+          <label class="clue-item" id="clue-league">
+            <input type="checkbox" id="chk-league" onchange="updateClues()">
+            <span class="clue-label">League</span>
+            <span class="clue-cost" id="cost-league">+50</span>
+          </label>
+          <label class="clue-item" id="clue-tier">
+            <input type="checkbox" id="chk-tier" onchange="updateClues()">
+            <span class="clue-label">Highest Tier</span>
+            <span class="clue-cost" id="cost-tier">+30</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Essence Cost</label>
+        <div class="essence-preview">
+          <span class="essence-label">Total essence</span>
+          <span class="essence-value" id="essence-display">1,000</span>
+        </div>
+      </div>
+
+      <button class="btn-submit" id="btn-add" onclick="addCraft()">+ Add Craft</button>
+
+      <div class="tier-legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--low)"></div>
+          <span>Low &lt; €25</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--mid)"></div>
+          <span>Mid €25–100</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--high)"></div>
+          <span>High &gt; €100</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="right-panel">
+
+      <!-- Analytics by scarcity -->
+      <div class="analytics-card" id="analytics-section" style="display:none">
+        <div class="card-title">// Analytics by Scarcity</div>
+        <div class="scarcity-panels">
+
+          <div class="sc-panel open" id="panel-limited">
+            <div class="sc-panel-header" onclick="togglePanel('limited')">
+              <span class="sc-panel-title lim">◆ Limited</span>
+              <span class="sc-panel-chevron">▼</span>
+            </div>
+            <div class="sc-panel-body">
+              <div class="sc-stat"><span class="sc-stat-label">Crafts</span><span class="sc-stat-value lim" id="sc-limited-count">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">Avg Value (EV)</span><span class="sc-stat-value lim" id="sc-limited-ev">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">Avg Essence</span><span class="sc-stat-value" id="sc-limited-ess">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">EV / 1k Essence</span><span class="sc-stat-value lim" id="sc-limited-eff">—</span></div>
+            </div>
+          </div>
+
+          <div class="sc-panel open" id="panel-rare">
+            <div class="sc-panel-header" onclick="togglePanel('rare')">
+              <span class="sc-panel-title rar">◆ Rare</span>
+              <span class="sc-panel-chevron">▼</span>
+            </div>
+            <div class="sc-panel-body">
+              <div class="sc-stat"><span class="sc-stat-label">Crafts</span><span class="sc-stat-value rar" id="sc-rare-count">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">Avg Value (EV)</span><span class="sc-stat-value rar" id="sc-rare-ev">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">Avg Essence</span><span class="sc-stat-value" id="sc-rare-ess">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">EV / 1k Essence</span><span class="sc-stat-value rar" id="sc-rare-eff">—</span></div>
+            </div>
+          </div>
+
+          <div class="sc-panel open" id="panel-super_rare">
+            <div class="sc-panel-header" onclick="togglePanel('super_rare')">
+              <span class="sc-panel-title sr">◆ Super Rare</span>
+              <span class="sc-panel-chevron">▼</span>
+            </div>
+            <div class="sc-panel-body">
+              <div class="sc-stat"><span class="sc-stat-label">Crafts</span><span class="sc-stat-value sr" id="sc-super_rare-count">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">Avg Value (EV)</span><span class="sc-stat-value sr" id="sc-super_rare-ev">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">Avg Essence</span><span class="sc-stat-value" id="sc-super_rare-ess">—</span></div>
+              <div class="sc-stat"><span class="sc-stat-label">EV / 1k Essence</span><span class="sc-stat-value sr" id="sc-super_rare-eff">—</span></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-card" id="chart-section" style="display:none">
+        <div class="card-title">// Value Over Time</div>
+        <div class="chart-container">
+          <canvas id="craftChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Crafts list -->
+      <div class="list-card">
+        <div class="list-header">
+          <div class="card-title" style="margin:0">// Craft History</div>
+          <span class="count-badge" id="list-count">0 crafts</span>
+        </div>
+
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="setFilter('all')"        id="ftab-all">All</button>
+          <button class="filter-tab"        onclick="setFilter('limited')"    id="ftab-limited">◆ Limited</button>
+          <button class="filter-tab"        onclick="setFilter('rare')"       id="ftab-rare">◆ Rare</button>
+          <button class="filter-tab"        onclick="setFilter('super_rare')" id="ftab-super_rare">◆ Super Rare</button>
+          <button class="filter-tab"        onclick="setFilter('standard')"   id="ftab-standard">⬡ Std</button>
+          <button class="filter-tab"        onclick="setFilter('special')"    id="ftab-special">★ Spc</button>
+        </div>
+
+        <div id="table-area">
+          <div class="empty" id="empty-state">
+            <div class="empty-icon">⚗️</div>
+            <div>No crafts yet.</div>
+            <div style="margin-top:4px;opacity:0.5">Add your first card craft above.</div>
+          </div>
+          <div class="table-wrap" id="table-wrap" style="display:none">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Player</th>
+                  <th>Scarcity</th>
+                  <th>Draw</th>
+                  <th>Tier</th>
+                  <th>Value</th>
+                  <th>Essence</th>
+                  <th>+/- Avg</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="craft-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><!-- /main-app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Supabase config ───────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://jxhdlcpdupmkpsoytzes.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4aGRsY3BkdXBta3Bzb3l0emVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjQwMjQsImV4cCI6MjA4OTM0MDAyNH0.bvOQf7cF05GWafdb-vR7V9bphLjvgqTuY2BTLLGPnQM';
+
+  let accessToken = null;
+  let currentUser = null;
+
+  function authHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + (accessToken || SUPABASE_KEY),
+      'Prefer': 'return=representation'
+    };
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  async function doLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl    = document.getElementById('login-error');
+    const btn      = document.getElementById('btn-login');
+
+    errEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = '...';
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error_description || data.msg || 'Login fehlgeschlagen');
+      onLoggedIn(data);
+    } catch(e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Einloggen';
+    }
+  }
+
+  async function doRegister() {
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const errEl    = document.getElementById('register-error');
+    const btn      = document.getElementById('btn-register');
+
+    errEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = '...';
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error_description || data.msg || 'Registrierung fehlgeschlagen');
+      if (data.access_token) {
+        onLoggedIn(data);
+      } else {
+        // Email confirmation required
+        errEl.style.background = 'rgba(200,255,74,0.1)';
+        errEl.style.borderColor = 'rgba(200,255,74,0.3)';
+        errEl.style.color = 'var(--accent)';
+        errEl.textContent = '✓ Bestätigungs-Email gesendet! Bitte E-Mail prüfen.';
+        errEl.style.display = 'block';
+      }
+    } catch(e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Account erstellen';
+    }
+  }
+
+  function onLoggedIn(data) {
+    accessToken = data.access_token;
+    currentUser = data.user;
+    const remember = document.getElementById('remember-me')?.checked;
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem('sb_token', accessToken);
+    storage.setItem('sb_user', JSON.stringify(currentUser));
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    document.getElementById('user-email-display').textContent = currentUser.email;
+    loadAndRender();
+  }
+
+  function doLogout() {
+    accessToken = null;
+    currentUser = null;
+    crafts = [];
+    localStorage.removeItem('sb_token');
+    localStorage.removeItem('sb_user');
+    sessionStorage.removeItem('sb_token');
+    sessionStorage.removeItem('sb_user');
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+    render();
+  }
+
+  function switchTab(tab) {
+    document.getElementById('auth-login').style.display    = tab === 'login'    ? 'block' : 'none';
+    document.getElementById('auth-register').style.display = tab === 'register' ? 'block' : 'none';
+    document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  }
+
+  // ── DB ────────────────────────────────────────────────────────────────────
+  // Load OWN crafts for the history table
+  async function dbLoadOwn() {
+    // Fetch crafts belonging to current user OR with no user_id (legacy data)
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/crafts?or=(user_id.eq.${currentUser.id},user_id.is.null)&order=date.asc`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).map(rowToApp);
+  }
+
+  // Load ALL crafts for analytics only
+  async function dbLoadAll() {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/crafts?order=date.asc`,
+      { headers: authHeaders() }
+    );
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).map(rowToApp);
+  }
+
+  function rowToApp(r) {
+    return {
+      id:       r.id,
+      name:     r.name,
+      value:    r.value,
+      scarcity: r.scarcity,
+      drawType: r.draw_type,
+      essence:  r.essence,
+      clues:    r.clues || {},
+      date:     r.date,
+      userId:   r.user_id,
+    };
+  }
+
+  async function dbInsert(craft) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/crafts`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        id:        craft.id,
+        name:      craft.name,
+        value:     craft.value,
+        scarcity:  craft.scarcity,
+        draw_type: craft.drawType,
+        essence:   craft.essence,
+        clues:     craft.clues,
+        date:      craft.date,
+        user_id:   currentUser.id,
+      })
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  async function dbDelete(id) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/crafts?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let crafts    = [];   // own crafts — shown in history table
+  let allCrafts = [];   // all users — used for analytics
+  let chart = null;
+  let activeFilter    = 'all';
+  let selectedDraw    = 'standard';
+  let selectedScarcity = 'limited';
+
+  const SCARCITIES = ['limited', 'rare', 'super_rare'];
+  const SCARCITY_META = {
+    limited:    { label: 'Limited',    cls: 'sc-limited', col: '#f0c84a' },
+    rare:       { label: 'Rare',       cls: 'sc-rare',    col: '#ff5a6e' },
+    super_rare: { label: 'Super Rare', cls: 'sc-sr',      col: '#6ab0ff' },
+  };
+
+  const CLUE_COSTS = {
+    standard: { best5: 1000, nat: 500, league: 500, tier: 300 },
+    special:  { best5: 2000, nat: 1000, league: 1000, tier: 300 }
+  };
+  const BASE_ESSENCE = 1000;
+
+  async function loadAndRender() {
+    showToast('⟳ Lade Daten...');
+    try {
+      [crafts, allCrafts] = await Promise.all([dbLoadOwn(), dbLoadAll()]);
+      render();
+      showToast(`✓ ${crafts.length} eigene Crafts geladen`);
+    } catch(e) {
+      showToast('✗ Verbindung fehlgeschlagen');
+      console.error(e);
+    }
+    updateClues();
+  }
+
+  // ── Draw type toggle ───────────────────────────────────────────────────────
+  function setDraw(type) {
+    selectedDraw = type;
+    document.getElementById('btn-std').classList.toggle('active', type === 'standard');
+    document.getElementById('btn-spc').classList.toggle('active', type === 'special');
+    updateClues();
+  }
+
+  // ── Scarcity toggle ────────────────────────────────────────────────────────
+  function setScarcity(sc) {
+    selectedScarcity = sc;
+    SCARCITIES.forEach(s => {
+      document.getElementById('sc-' + s).classList.toggle('active', s === sc);
+    });
+  }
+
+  // ── Panel collapse ─────────────────────────────────────────────────────────
+  function togglePanel(sc) {
+    document.getElementById('panel-' + sc).classList.toggle('open');
+  }
+
+  // ── Clue checkboxes ────────────────────────────────────────────────────────
+  function updateClues() {
+    const costs = CLUE_COSTS[selectedDraw];
+    document.getElementById('cost-best5').textContent  = '+' + costs.best5;
+    document.getElementById('cost-nat').textContent    = '+' + costs.nat;
+    document.getElementById('cost-league').textContent = '+' + costs.league;
+    document.getElementById('cost-tier').textContent   = '+' + costs.tier;
+    ['best5','nat','league','tier'].forEach(k => {
+      document.getElementById('clue-' + k).classList.toggle('checked',
+        document.getElementById('chk-' + k).checked);
+    });
+    document.getElementById('essence-display').textContent = calcEssence().toLocaleString();
+  }
+
+  function calcEssence() {
+    const costs = CLUE_COSTS[selectedDraw];
+    let total = BASE_ESSENCE;
+    if (document.getElementById('chk-best5').checked)  total += costs.best5;
+    if (document.getElementById('chk-nat').checked)    total += costs.nat;
+    if (document.getElementById('chk-league').checked) total += costs.league;
+    if (document.getElementById('chk-tier').checked)   total += costs.tier;
+    return total;
+  }
+
+  // ── Tier ──────────────────────────────────────────────────────────────────
+  function getTier(value) {
+    if (value < 25)   return { label: 'Low',  cls: 'tier-low'  };
+    if (value <= 100) return { label: 'Mid',  cls: 'tier-mid'  };
+    return                   { label: 'High', cls: 'tier-high' };
+  }
+
+  // ── Filter ─────────────────────────────────────────────────────────────────
+  function setFilter(f) {
+    activeFilter = f;
+    ['all','limited','rare','super_rare','standard','special'].forEach(id => {
+      document.getElementById('ftab-' + id).classList.toggle('active', id === f);
+    });
+    render();
+  }
+
+  function filteredCrafts() {
+    if (activeFilter === 'all') return crafts;
+    if (SCARCITIES.includes(activeFilter))
+      return crafts.filter(c => (c.scarcity || 'limited') === activeFilter);
+    return crafts.filter(c => c.drawType === activeFilter);
+  }
+
+  // ── Add Craft ─────────────────────────────────────────────────────────────
+  async function addCraft() {
+    const name  = document.getElementById('inp-name').value.trim();
+    const value = parseFloat(document.getElementById('inp-value').value);
+    if (!name)                     { showToast('⚠ Spielername eingeben');       return; }
+    if (isNaN(value) || value < 0) { showToast('⚠ Gültigen Wert eingeben');     return; }
+
+    const essence = calcEssence();
+    const clues = {
+      best5:  document.getElementById('chk-best5').checked,
+      nat:    document.getElementById('chk-nat').checked,
+      league: document.getElementById('chk-league').checked,
+      tier:   document.getElementById('chk-tier').checked,
+    };
+    const craft = {
+      id: Date.now(), name, value,
+      scarcity: selectedScarcity,
+      drawType: selectedDraw,
+      essence, clues,
+      date: new Date().toISOString()
+    };
+
+    setLoading(true);
+    try {
+      await dbInsert(craft);
+      crafts.push(craft);
+      allCrafts.push(craft);
+      render();
+      showToast(`✓ ${name} gespeichert`);
+      document.getElementById('inp-name').value  = '';
+      document.getElementById('inp-value').value = '';
+      ['best5','nat','league','tier'].forEach(k => {
+        document.getElementById('chk-' + k).checked = false;
+      });
+      updateClues();
+      document.getElementById('inp-name').focus();
+    } catch(e) {
+      showToast('✗ Fehler: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Delete Craft ──────────────────────────────────────────────────────────
+  async function deleteCraft(id) {
+    setLoading(true);
+    try {
+      await dbDelete(id);
+      crafts    = crafts.filter(c => c.id !== id);
+      allCrafts = allCrafts.filter(c => c.id !== id);
+      render();
+    } catch(e) {
+      showToast('✗ Löschen fehlgeschlagen');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function setLoading(on) {
+    const btn = document.getElementById('btn-add');
+    btn.disabled    = on;
+    btn.textContent = on ? '...' : '+ Add Craft';
+  }
+
+  // ── Format ────────────────────────────────────────────────────────────────
+  function fmt(n) {
+    return '€' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  }
+
+  // ── Analytics — uses allCrafts (all users) ────────────────────────────────
+  function calcScarcityAnalytics(sc) {
+    const subset = allCrafts.filter(c => (c.scarcity || 'limited') === sc);
+    if (!subset.length) return null;
+    const count      = subset.length;
+    const totalValue = subset.reduce((s,c) => s + c.value, 0);
+    const totalEss   = subset.reduce((s,c) => s + (c.essence || BASE_ESSENCE), 0);
+    return {
+      count,
+      ev:       totalValue / count,
+      avgEss:   totalEss / count,
+      effPer1k: (totalValue / totalEss) * 1000,
+    };
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function render() {
+    const visible    = filteredCrafts();   // own crafts, filtered
+    const totalCount = crafts.length;
+    const totalValue = crafts.reduce((s,c) => s + c.value, 0);
+
+    // Top stats — own crafts only
+    document.getElementById('stat-count').textContent     = totalCount;
+    document.getElementById('stat-ev').textContent        = totalCount ? fmt(totalValue / totalCount) : '€0.00';
+    document.getElementById('stat-total-val').textContent = fmt(totalValue);
+
+    // Analytics panels — ALL users
+    const analSection = document.getElementById('analytics-section');
+    if (allCrafts.length > 0) {
+      analSection.style.display = 'block';
+      SCARCITIES.forEach(sc => {
+        const a = calcScarcityAnalytics(sc);
+        const setEl = (id, val) => { document.getElementById(`sc-${sc}-${id}`).textContent = val; };
+        if (!a) {
+          setEl('count','0'); setEl('ev','—'); setEl('ess','—'); setEl('eff','—');
+        } else {
+          setEl('count', a.count);
+          setEl('ev',    fmt(a.ev));
+          setEl('ess',   Math.round(a.avgEss).toLocaleString());
+          setEl('eff',   fmt(a.effPer1k));
+        }
+      });
+    } else {
+      analSection.style.display = 'none';
+    }
+
+    // List badge
+    document.getElementById('list-count').textContent =
+      `${visible.length} craft${visible.length !== 1 ? 's' : ''}`;
+
+    // Table — own crafts only
+    const empty     = document.getElementById('empty-state');
+    const tableWrap = document.getElementById('table-wrap');
+
+    if (visible.length === 0) {
+      empty.style.display = 'block';
+      tableWrap.style.display = 'none';
+    } else {
+      empty.style.display = 'none';
+      tableWrap.style.display = 'block';
+
+      const tbody = document.getElementById('craft-tbody');
+      tbody.innerHTML = '';
+
+      [...visible].reverse().forEach((c, i) => {
+        const sc        = c.scarcity || 'limited';
+        const scMeta    = SCARCITY_META[sc];
+        const essence   = c.essence || BASE_ESSENCE;
+        // +/- avg uses allCrafts analytics for that scarcity
+        const scAvg     = calcScarcityAnalytics(sc)?.ev ?? 0;
+        const delta     = c.value - scAvg;
+        const tier      = getTier(c.value);
+        const isSpec    = c.drawType === 'special';
+        const drawLabel = isSpec ? '★ Spc' : '⬡ Std';
+        const drawCls   = isSpec ? 'draw-spc' : 'draw-std';
+
+        const tr = document.createElement('tr');
+        if (i === 0 && activeFilter === 'all') tr.classList.add('row-new');
+        tr.innerHTML = `
+          <td class="date-cell">${visible.length - i}</td>
+          <td><span class="player-name">${escHtml(c.name)}</span></td>
+          <td><span class="sc-badge ${scMeta.cls}">${scMeta.label}</span></td>
+          <td><span class="draw-badge ${drawCls}">${drawLabel}</span></td>
+          <td><span class="tier ${tier.cls}">${tier.label}</span></td>
+          <td class="value-cell">${fmt(c.value)}</td>
+          <td class="date-cell">${essence.toLocaleString()}</td>
+          <td class="${delta >= 0 ? 'profit-cell' : 'loss-cell'}">${delta >= 0 ? '+' : ''}${fmt(delta)}</td>
+          <td class="date-cell">${fmtDate(c.date)}</td>
+          <td>${c.userId === currentUser?.id ? `<button class="btn-del" onclick="deleteCraft(${c.id})" title="Delete">✕</button>` : ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    renderChart();
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Chart — own crafts ────────────────────────────────────────────────────
+  function renderChart() {
+    const section = document.getElementById('chart-section');
+    if (crafts.length < 2) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+
+    const allSorted = [...crafts].sort((a,b) => a.date.localeCompare(b.date));
+    const labels    = allSorted.map((c, i) => `#${i+1} ${c.name.split(' ').pop()}`);
+
+    const chartDatasets = SCARCITIES.flatMap(sc => {
+      const meta   = SCARCITY_META[sc];
+      const subset = crafts.filter(c => (c.scarcity || 'limited') === sc);
+      if (!subset.length) return [];
+      const data = allSorted.map(c => ((c.scarcity || 'limited') === sc ? c.value : null));
+      return [{
+        label: meta.label, data,
+        borderColor: meta.col,
+        backgroundColor: meta.col + '14',
+        borderWidth: 2,
+        pointBackgroundColor: meta.col,
+        pointRadius: allSorted.map(c => ((c.scarcity||'limited') === sc ? 5 : 0)),
+        pointHoverRadius: 7,
+        spanGaps: false, tension: 0.3, fill: false,
+      }];
+    });
+
+    const ctx = document.getElementById('craftChart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: chartDatasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#5a5a72', font: { family: 'IBM Plex Mono', size: 10 }, boxWidth: 12 } },
+          tooltip: {
+            backgroundColor: '#18181f', borderColor: '#22222e', borderWidth: 1,
+            titleColor: '#e8e8f0', bodyColor: '#e8e8f0',
+            titleFont: { family: 'Syne', weight: '700', size: 12 },
+            bodyFont:  { family: 'IBM Plex Mono', size: 11 },
+            filter: item => item.raw !== null,
+            callbacks: {
+              label: ctx => {
+                const c = allSorted[ctx.dataIndex];
+                if (!c || ctx.raw === null) return null;
+                const draw = c.drawType === 'special' ? '★ Special' : '⬡ Standard';
+                return [` Value: €${ctx.raw.toFixed(2)}`, ` Draw:  ${draw}`, ` Ess:   ${(c.essence||1000).toLocaleString()}`];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#5a5a72', font: { family: 'IBM Plex Mono', size: 9 }, maxRotation: 45 }, grid: { color: 'rgba(34,34,46,0.8)' } },
+          y: { ticks: { color: '#5a5a72', font: { family: 'IBM Plex Mono', size: 10 }, callback: v => '€' + v }, grid: { color: 'rgba(34,34,46,0.6)' } }
+        }
+      }
+    });
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  // ── Enter key ─────────────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (['login-email','login-password'].includes(document.activeElement.id)) doLogin();
+      else if (['reg-email','reg-password'].includes(document.activeElement.id)) doRegister();
+      else if (['inp-name','inp-value'].includes(document.activeElement.id)) addCraft();
+    }
+  });
+
+  // ── Init — restore session ────────────────────────────────────────────────
+  (async () => {
+    updateClues();
+    const savedToken = localStorage.getItem('sb_token') || sessionStorage.getItem('sb_token');
+    const savedUser  = localStorage.getItem('sb_user')  || sessionStorage.getItem('sb_user');
+    if (savedToken && savedUser) {
+      accessToken = savedToken;
+      currentUser = JSON.parse(savedUser);
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('main-app').style.display    = 'block';
+      document.getElementById('user-email-display').textContent = currentUser.email;
+      loadAndRender();
+    }
+  })();
+</script>
+</body>
+</html>
