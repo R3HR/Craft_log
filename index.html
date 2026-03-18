@@ -100,6 +100,34 @@
     letter-spacing: 0.1em;
   }
 
+  /* Stats bar label */
+  .stats-bar-label {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    margin-top: 4px;
+  }
+
+  .stats-bar.small .stat-card {
+    padding: 10px 14px;
+  }
+
+  .stats-bar.small .stat-value {
+    font-size: 16px;
+  }
+
+  .stats-bar.small .stat-label {
+    font-size: 8px;
+    margin-bottom: 4px;
+  }
+
+  .stats-bar.small .stat-sub {
+    font-size: 9px;
+    margin-top: 2px;
+  }
+
   /* Stats bar */
   .stats-bar {
     display: grid;
@@ -165,6 +193,136 @@
 
   @media (max-width: 768px) {
     .grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Mobile optimizations ─────────────────────────────────────── */
+  @media (max-width: 600px) {
+
+    .app {
+      padding: 16px 12px 100px;
+    }
+
+    /* Header */
+    header {
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 32px;
+    }
+
+    .user-bar {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .user-email {
+      font-size: 9px;
+      max-width: 140px;
+    }
+
+    /* Stats bars */
+    .stats-bar {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .stats-bar .stat-card:last-child {
+      grid-column: span 2;
+    }
+
+    .stats-bar.small .stat-card {
+      padding: 8px 10px;
+    }
+
+    .stats-bar-label {
+      margin-top: 8px;
+    }
+
+    /* Form card — not sticky on mobile */
+    .form-card {
+      position: static;
+      padding: 16px;
+    }
+
+    /* Scarcity toggle — full labels */
+    .sc-btn {
+      font-size: 9px;
+      padding: 6px 4px;
+    }
+
+    .draw-btn {
+      font-size: 10px;
+      padding: 6px 4px;
+    }
+
+    /* Clues grid */
+    .clues-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .clue-label {
+      font-size: 9px;
+    }
+
+    /* Analytics panels */
+    .sc-panel-body {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .sc-stat-value {
+      font-size: 13px;
+    }
+
+    /* Filter tabs — scrollable */
+    .filter-tabs {
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-tab {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Table — horizontal scroll */
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      min-width: 520px;
+    }
+
+    /* Auth box */
+    .auth-box {
+      padding: 28px 20px;
+    }
+
+    /* Chart */
+    .chart-container {
+      height: 140px;
+    }
+
+    /* Add craft button — fixed at bottom */
+    .btn-submit {
+      position: fixed;
+      bottom: 16px;
+      left: 12px;
+      right: 12px;
+      width: calc(100% - 24px);
+      z-index: 50;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 14px;
+      box-shadow: 0 4px 20px rgba(200,255,74,0.25);
+    }
   }
 
   /* Form */
@@ -1011,12 +1169,13 @@
     </div>
   </header>
 
-  <!-- Stats Bar -->
-  <div class="stats-bar">
+  <!-- Global Stats Bar -->
+  <div class="stats-bar-label">🌍 Global</div>
+  <div class="stats-bar small">
     <div class="stat-card green">
       <div class="stat-label">Total Crafts</div>
       <div class="stat-value" id="stat-count">0</div>
-      <div class="stat-sub">all time</div>
+      <div class="stat-sub">all users</div>
     </div>
     <div class="stat-card cyan">
       <div class="stat-label">Avg Value (EV)</div>
@@ -1026,6 +1185,26 @@
     <div class="stat-card cyan">
       <div class="stat-label">Total Value</div>
       <div class="stat-value" id="stat-total-val">€0.00</div>
+      <div class="stat-sub">market value</div>
+    </div>
+  </div>
+
+  <!-- Personal Stats Bar -->
+  <div class="stats-bar-label">👤 Meine</div>
+  <div class="stats-bar">
+    <div class="stat-card green">
+      <div class="stat-label">Meine Crafts</div>
+      <div class="stat-value" id="my-stat-count">0</div>
+      <div class="stat-sub">all time</div>
+    </div>
+    <div class="stat-card cyan">
+      <div class="stat-label">Mein Avg (EV)</div>
+      <div class="stat-value" id="my-stat-ev">€0.00</div>
+      <div class="stat-sub">per craft</div>
+    </div>
+    <div class="stat-card cyan">
+      <div class="stat-label">Mein Total Value</div>
+      <div class="stat-value" id="my-stat-total-val">€0.00</div>
       <div class="stat-sub">market value</div>
     </div>
   </div>
@@ -1049,7 +1228,7 @@
         <div class="scarcity-toggle">
           <button class="sc-btn lim active" id="sc-limited"  onclick="setScarcity('limited')">◆ Limited</button>
           <button class="sc-btn rar"        id="sc-rare"     onclick="setScarcity('rare')">◆ Rare</button>
-          <button class="sc-btn sr"         id="sc-sr"       onclick="setScarcity('super_rare')">◆ SR</button>
+          <button class="sc-btn sr"         id="sc-super_rare" onclick="setScarcity('super_rare')">◆ SR</button>
         </div>
       </div>
 
@@ -1596,10 +1775,19 @@
     const totalCount = crafts.length;
     const totalValue = crafts.reduce((s,c) => s + c.value, 0);
 
-    // Top stats — own crafts only
-    document.getElementById('stat-count').textContent     = totalCount;
-    document.getElementById('stat-ev').textContent        = totalCount ? fmt(totalValue / totalCount) : '€0.00';
-    document.getElementById('stat-total-val').textContent = fmt(totalValue);
+    // Global stats — all users
+    const globalCount = allCrafts.length;
+    const globalValue = allCrafts.reduce((s,c) => s + c.value, 0);
+    document.getElementById('stat-count').textContent     = globalCount;
+    document.getElementById('stat-ev').textContent        = globalCount ? fmt(globalValue / globalCount) : '€0.00';
+    document.getElementById('stat-total-val').textContent = fmt(globalValue);
+
+    // Personal stats — own crafts only
+    const myCount = crafts.length;
+    const myValue = crafts.reduce((s,c) => s + c.value, 0);
+    document.getElementById('my-stat-count').textContent     = myCount;
+    document.getElementById('my-stat-ev').textContent        = myCount ? fmt(myValue / myCount) : '€0.00';
+    document.getElementById('my-stat-total-val').textContent = fmt(myValue);
 
     // Analytics panels — ALL users
     const analSection = document.getElementById('analytics-section');
