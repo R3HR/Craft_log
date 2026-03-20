@@ -1285,20 +1285,28 @@
 
       <div class="form-group">
         <label>Player Name</label>
+        <input type="text" id="inp-name" placeholder="e.g. Erling Haaland" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label>Sorare Slug <span style="color:var(--muted);font-size:9px">(von der Sorare URL)</span></label>
         <div style="display:flex;gap:8px">
-          <input type="text" id="inp-name" placeholder="e.g. Erling Haaland" autocomplete="off" style="flex:1">
-          <button class="btn-lookup" id="btn-lookup" onclick="lookupPlayer()" title="Marktwert von Sorare laden">⟳</button>
+          <input type="text" id="inp-slug" placeholder="z.B. josip stanisic" autocomplete="off" style="flex:1" oninput="this.value=this.value.toLowerCase().replace(/\s+/g,'-')">
+          <button class="btn-lookup" id="btn-lookup" onclick="lookupPlayer()" title="Marktwert laden">⟳</button>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-top:5px">
+          sorare.com → Spieler → URL → Slug kopieren (ohne Jahreszahl)
         </div>
       </div>
 
       <div class="form-group" id="api-result-box" style="display:none">
         <div class="api-result">
           <div class="api-result-row">
-            <span class="api-result-label">Floor Price</span>
-            <span class="api-result-val" id="api-floor">—</span>
+            <span class="api-result-label">Letzter Verkauf</span>
+            <span class="api-result-val" id="api-latest">—</span>
           </div>
           <div class="api-result-row">
-            <span class="api-result-label">Avg 3 Sales</span>
+            <span class="api-result-label">Avg letzte 3</span>
             <span class="api-result-val" id="api-avg">—</span>
           </div>
           <div class="api-result-row" style="border-top:1px solid var(--border);padding-top:6px;margin-top:2px">
@@ -1816,8 +1824,8 @@
   let apiMarketValue = null;
 
   async function lookupPlayer() {
-    const name = document.getElementById('inp-name').value.trim();
-    if (!name) { showToast('⚠ Spielername eingeben'); return; }
+    const slug = document.getElementById('inp-slug').value.trim();
+    if (!slug) { showToast('⚠ Sorare Slug eingeben'); return; }
 
     const btn = document.getElementById('btn-lookup');
     btn.disabled = true;
@@ -1831,7 +1839,7 @@
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + accessToken,
         },
-        body: JSON.stringify({ playerName: name, rarity: selectedScarcity })
+        body: JSON.stringify({ playerSlug: slug, rarity: selectedScarcity })
       });
 
       const data = await res.json();
@@ -1839,15 +1847,14 @@
 
       apiMarketValue = data.marketValue;
 
-      document.getElementById('api-floor').textContent =
-        data.floorPrice != null ? `€${data.floorPrice.toFixed(2)}` : '—';
+      document.getElementById('api-latest').textContent =
+        data.latestSale != null ? `€${data.latestSale.toFixed(2)}` : '—';
       document.getElementById('api-avg').textContent =
         data.avg3Sales != null ? `€${data.avg3Sales.toFixed(2)}` : '—';
       document.getElementById('api-mv').textContent =
         data.marketValue != null ? `€${data.marketValue.toFixed(2)}` : '—';
 
       document.getElementById('api-result-box').style.display = 'block';
-      if (data.playerName) document.getElementById('inp-name').value = data.playerName;
 
     } catch(e) {
       showToast('✗ API Fehler: ' + e.message);
