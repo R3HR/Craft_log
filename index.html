@@ -1285,17 +1285,9 @@
 
       <div class="form-group">
         <label>Player Name</label>
-        <input type="text" id="inp-name" placeholder="e.g. Erling Haaland" autocomplete="off">
-      </div>
-
-      <div class="form-group">
-        <label>Sorare Slug <span style="color:var(--muted);font-size:9px">(von der Sorare URL)</span></label>
         <div style="display:flex;gap:8px">
-          <input type="text" id="inp-slug" placeholder="z.B. josip stanisic" autocomplete="off" style="flex:1" oninput="this.value=this.value.toLowerCase().replace(/\s+/g,'-')">
+          <input type="text" id="inp-name" placeholder="z.B. Josip Stanisic" autocomplete="off" style="flex:1">
           <button class="btn-lookup" id="btn-lookup" onclick="lookupPlayer()" title="Marktwert laden">⟳</button>
-        </div>
-        <div style="font-size:9px;color:var(--muted);margin-top:5px">
-          sorare.com → Spieler → URL → Slug kopieren (ohne Jahreszahl)
         </div>
       </div>
 
@@ -1824,8 +1816,9 @@
   let apiMarketValue = null;
 
   async function lookupPlayer() {
-    const slug = document.getElementById('inp-slug').value.trim();
-    if (!slug) { showToast('⚠ Sorare Slug eingeben'); return; }
+    const rawName = document.getElementById('inp-name').value.trim();
+    if (!rawName) { showToast('⚠ Spielername eingeben'); return; }
+    const slug = rawName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^\w-]/g, '');
 
     const btn = document.getElementById('btn-lookup');
     btn.disabled = true;
