@@ -1119,19 +1119,23 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 5px;
-    font-size: 14px;
-    width: 28px;
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    width: 32px;
     height: 28px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: border-color 0.2s;
+    transition: all 0.15s;
     padding: 0;
   }
 
-  .lang-btn:hover { border-color: var(--muted); }
-  .lang-btn.active { border-color: var(--accent); }
+  .lang-btn:hover { border-color: var(--muted); color: var(--text); }
+  .lang-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,255,74,0.08); }
 
   /* Sorare API lookup */
   .btn-lookup {
@@ -1192,10 +1196,10 @@
   <div class="auth-box">
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
       <div class="lang-selector">
-        <button class="lang-btn" id="auth-lang-de" onclick="setLang('de')" title="Deutsch">🇩🇪</button>
-        <button class="lang-btn" id="auth-lang-en" onclick="setLang('en')" title="English">🇬🇧</button>
-        <button class="lang-btn" id="auth-lang-es" onclick="setLang('es')" title="Español">🇪🇸</button>
-        <button class="lang-btn" id="auth-lang-fr" onclick="setLang('fr')" title="Français">🇫🇷</button>
+        <button class="lang-btn" id="auth-lang-de" onclick="setLang('de')" title="Deutsch">DE</button>
+        <button class="lang-btn" id="auth-lang-en" onclick="setLang('en')" title="English">EN</button>
+        <button class="lang-btn" id="auth-lang-es" onclick="setLang('es')" title="Español">ES</button>
+        <button class="lang-btn" id="auth-lang-fr" onclick="setLang('fr')" title="Français">FR</button>
       </div>
     </div>
     <div class="auth-logo">CRAFT<span>_</span>LOG</div>
@@ -1248,10 +1252,10 @@
     </div>
     <div class="user-bar">
       <div class="lang-selector">
-        <button class="lang-btn" id="lang-de" onclick="setLang('de')" title="Deutsch">🇩🇪</button>
-        <button class="lang-btn" id="lang-en" onclick="setLang('en')" title="English">🇬🇧</button>
-        <button class="lang-btn" id="lang-es" onclick="setLang('es')" title="Español">🇪🇸</button>
-        <button class="lang-btn" id="lang-fr" onclick="setLang('fr')" title="Français">🇫🇷</button>
+        <button class="lang-btn" id="lang-de" onclick="setLang('de')" title="Deutsch">DE</button>
+        <button class="lang-btn" id="lang-en" onclick="setLang('en')" title="English">EN</button>
+        <button class="lang-btn" id="lang-es" onclick="setLang('es')" title="Español">ES</button>
+        <button class="lang-btn" id="lang-fr" onclick="setLang('fr')" title="Français">FR</button>
       </div>
       <span class="user-email" id="user-email-display"></span>
       <button class="btn-logout" id="btn-logout" onclick="doLogout()">Logout</button>
@@ -1276,9 +1280,24 @@
       <div class="stat-value" id="stat-total-val">€0.00</div>
       <div class="stat-sub">market value</div>
     </div>
+    <div class="stat-card cyan">
+      <div class="stat-label">EV / 1k Essence</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:9px;color:var(--limited);letter-spacing:0.1em">◆ LTD</span>
+          <span class="stat-value" id="global-eff-limited" style="font-size:18px">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:9px;color:var(--rare);letter-spacing:0.1em">◆ RARE</span>
+          <span class="stat-value" id="global-eff-rare" style="font-size:18px">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:9px;color:var(--sr);letter-spacing:0.1em">◆ SR</span>
+          <span class="stat-value" id="global-eff-sr" style="font-size:18px">—</span>
+        </div>
+      </div>
+    </div>
   </div>
-
-  <!-- Personal Stats Bar -->
   <div class="stats-bar-label">👤 Meine</div>
   <div class="stats-bar">
     <div class="stat-card green">
@@ -1937,8 +1956,17 @@
     const totalCount = crafts.length;
     const totalValue = crafts.reduce((s,c) => s + c.value, 0);
 
-    // Global stats — all users
-    const globalCount = allCrafts.length;
+    // Global essence efficiency per scarcity
+    ['limited','rare','super_rare'].forEach(sc => {
+      const subset = allCrafts.filter(c => (c.scarcity || 'limited') === sc);
+      const elId = sc === 'super_rare' ? 'global-eff-sr' : `global-eff-${sc}`;
+      const el = document.getElementById(elId);
+      if (!el) return;
+      if (!subset.length) { el.textContent = '—'; return; }
+      const totalVal = subset.reduce((s,c) => s + c.value, 0);
+      const totalEss = subset.reduce((s,c) => s + (c.essence || BASE_ESSENCE), 0);
+      el.textContent = fmt((totalVal / totalEss) * 1000);
+    });
     const globalValue = allCrafts.reduce((s,c) => s + c.value, 0);
     document.getElementById('stat-count').textContent     = globalCount;
     document.getElementById('stat-ev').textContent        = globalCount ? fmt(globalValue / globalCount) : '€0.00';
