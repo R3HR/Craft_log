@@ -1109,6 +1109,30 @@
 
   .btn-logout:hover { border-color: var(--red); color: var(--red); }
 
+  /* Language selector */
+  .lang-selector {
+    display: flex;
+    gap: 4px;
+  }
+
+  .lang-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 14px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s;
+    padding: 0;
+  }
+
+  .lang-btn:hover { border-color: var(--muted); }
+  .lang-btn.active { border-color: var(--accent); }
+
   /* Sorare API lookup */
   .btn-lookup {
     background: var(--surface2);
@@ -1215,8 +1239,14 @@
       <p class="subtitle">Sorare Card Craft Tracker</p>
     </div>
     <div class="user-bar">
+      <div class="lang-selector">
+        <button class="lang-btn" id="lang-de" onclick="setLang('de')" title="Deutsch">🇩🇪</button>
+        <button class="lang-btn" id="lang-en" onclick="setLang('en')" title="English">🇬🇧</button>
+        <button class="lang-btn" id="lang-es" onclick="setLang('es')" title="Español">🇪🇸</button>
+        <button class="lang-btn" id="lang-fr" onclick="setLang('fr')" title="Français">🇫🇷</button>
+      </div>
       <span class="user-email" id="user-email-display"></span>
-      <button class="btn-logout" onclick="doLogout()">Logout</button>
+      <button class="btn-logout" id="btn-logout" onclick="doLogout()">Logout</button>
     </div>
   </header>
 
@@ -2066,9 +2096,207 @@
     }
   });
 
+  // ── Translations ──────────────────────────────────────────────────────────
+  const TRANSLATIONS = {
+    de: {
+      dashboard: 'Dashboard', subtitle: 'Sorare Karten Craft Tracker',
+      totalCrafts: 'Crafts Gesamt', allUsers: 'alle Nutzer', allTime: 'gesamt',
+      avgValue: 'Avg Wert (EV)', perCraft: 'pro Craft',
+      totalValue: 'Gesamtwert', marketValue: 'Marktwert',
+      myCrafts: 'Meine Crafts', myAvg: 'Mein Avg (EV)', myTotal: 'Mein Gesamtwert',
+      newCraft: '// Neuer Craft',
+      drawType: 'Draw Typ', scarcity: 'Seltenheit',
+      playerName: 'Spielername', marketValueLabel: 'Marktwert (€)',
+      cluesUsed: 'Verwendete Hinweise', essenceCost: 'Essenz Kosten',
+      totalEssence: 'Gesamt Essenz', addCraft: '+ Craft hinzufügen',
+      low: 'Niedrig', mid: 'Mittel', high: 'Hoch',
+      analyticsByScarcity: '// Analytik nach Seltenheit',
+      crafts: 'Crafts', avgEV: 'Avg EV', avgEssence: 'Avg Essenz', evPer1k: 'EV / 1k Essenz',
+      valueOverTime: '// Wert über Zeit',
+      craftHistory: '// Craft Verlauf', allFilter: 'Alle',
+      latestSale: 'Letzter Verkauf', avgLast5: 'Avg letzte 5', useValue: '↓ Wert übernehmen',
+      logout: 'Logout', login: 'Einloggen', register: 'Registrieren',
+      createAccount: 'Account erstellen', email: 'Email', password: 'Passwort',
+      rememberMe: 'Angemeldet bleiben', minPassword: 'mind. 6 Zeichen',
+      noCrafts: 'Noch keine Crafts.', addFirst: 'Füge deinen ersten Craft oben hinzu.',
+      global: '🌍 Global', mine: '👤 Meine',
+    },
+    en: {
+      dashboard: 'Dashboard', subtitle: 'Sorare Card Craft Tracker',
+      totalCrafts: 'Total Crafts', allUsers: 'all users', allTime: 'all time',
+      avgValue: 'Avg Value (EV)', perCraft: 'per craft',
+      totalValue: 'Total Value', marketValue: 'Market Value',
+      myCrafts: 'My Crafts', myAvg: 'My Avg (EV)', myTotal: 'My Total Value',
+      newCraft: '// New Craft',
+      drawType: 'Draw Type', scarcity: 'Scarcity',
+      playerName: 'Player Name', marketValueLabel: 'Market Value (€)',
+      cluesUsed: 'Clues Used', essenceCost: 'Essence Cost',
+      totalEssence: 'Total essence', addCraft: '+ Add Craft',
+      low: 'Low', mid: 'Mid', high: 'High',
+      analyticsByScarcity: '// Analytics by Scarcity',
+      crafts: 'Crafts', avgEV: 'Avg EV', avgEssence: 'Avg Essence', evPer1k: 'EV / 1k Essence',
+      valueOverTime: '// Value Over Time',
+      craftHistory: '// Craft History', allFilter: 'All',
+      latestSale: 'Latest Sale', avgLast5: 'Avg last 5', useValue: '↓ Use Value',
+      logout: 'Logout', login: 'Login', register: 'Register',
+      createAccount: 'Create Account', email: 'Email', password: 'Password',
+      rememberMe: 'Remember me', minPassword: 'min. 6 characters',
+      noCrafts: 'No crafts yet.', addFirst: 'Add your first craft above.',
+      global: '🌍 Global', mine: '👤 Mine',
+    },
+    es: {
+      dashboard: 'Panel', subtitle: 'Rastreador de Crafts de Sorare',
+      totalCrafts: 'Crafts Totales', allUsers: 'todos los usuarios', allTime: 'siempre',
+      avgValue: 'Valor Avg (EV)', perCraft: 'por craft',
+      totalValue: 'Valor Total', marketValue: 'Valor de Mercado',
+      myCrafts: 'Mis Crafts', myAvg: 'Mi Avg (EV)', myTotal: 'Mi Valor Total',
+      newCraft: '// Nuevo Craft',
+      drawType: 'Tipo de Sorteo', scarcity: 'Rareza',
+      playerName: 'Nombre del Jugador', marketValueLabel: 'Valor de Mercado (€)',
+      cluesUsed: 'Pistas Usadas', essenceCost: 'Coste de Esencia',
+      totalEssence: 'Esencia total', addCraft: '+ Añadir Craft',
+      low: 'Bajo', mid: 'Medio', high: 'Alto',
+      analyticsByScarcity: '// Análisis por Rareza',
+      crafts: 'Crafts', avgEV: 'EV Avg', avgEssence: 'Esencia Avg', evPer1k: 'EV / 1k Esencia',
+      valueOverTime: '// Valor en el Tiempo',
+      craftHistory: '// Historial de Crafts', allFilter: 'Todos',
+      latestSale: 'Última Venta', avgLast5: 'Avg últimas 5', useValue: '↓ Usar Valor',
+      logout: 'Cerrar sesión', login: 'Iniciar sesión', register: 'Registrarse',
+      createAccount: 'Crear cuenta', email: 'Email', password: 'Contraseña',
+      rememberMe: 'Recordarme', minPassword: 'mín. 6 caracteres',
+      noCrafts: 'Sin crafts aún.', addFirst: 'Añade tu primer craft arriba.',
+      global: '🌍 Global', mine: '👤 Mío',
+    },
+    fr: {
+      dashboard: 'Tableau de bord', subtitle: 'Suivi de Crafts Sorare',
+      totalCrafts: 'Crafts Totaux', allUsers: 'tous les joueurs', allTime: 'tout le temps',
+      avgValue: 'Valeur Moy (EV)', perCraft: 'par craft',
+      totalValue: 'Valeur Totale', marketValue: 'Valeur Marché',
+      myCrafts: 'Mes Crafts', myAvg: 'Mon Avg (EV)', myTotal: 'Ma Valeur Totale',
+      newCraft: '// Nouveau Craft',
+      drawType: 'Type de Tirage', scarcity: 'Rareté',
+      playerName: 'Nom du Joueur', marketValueLabel: 'Valeur Marché (€)',
+      cluesUsed: 'Indices Utilisés', essenceCost: 'Coût en Essence',
+      totalEssence: 'Essence totale', addCraft: '+ Ajouter Craft',
+      low: 'Bas', mid: 'Moyen', high: 'Élevé',
+      analyticsByScarcity: '// Analytiques par Rareté',
+      crafts: 'Crafts', avgEV: 'EV Moy', avgEssence: 'Essence Moy', evPer1k: 'EV / 1k Essence',
+      valueOverTime: '// Valeur dans le Temps',
+      craftHistory: '// Historique des Crafts', allFilter: 'Tous',
+      latestSale: 'Dernière Vente', avgLast5: 'Moy 5 dernières', useValue: '↓ Utiliser Valeur',
+      logout: 'Déconnexion', login: 'Connexion', register: "S'inscrire",
+      createAccount: 'Créer un compte', email: 'Email', password: 'Mot de passe',
+      rememberMe: 'Rester connecté', minPassword: 'min. 6 caractères',
+      noCrafts: 'Pas encore de crafts.', addFirst: 'Ajoutez votre premier craft ci-dessus.',
+      global: '🌍 Global', mine: '👤 Moi',
+    },
+  };
+
+  let currentLang = localStorage.getItem('craftlog_lang') || 'de';
+
+  function t(key) {
+    return TRANSLATIONS[currentLang][key] || TRANSLATIONS['en'][key] || key;
+  }
+
+  function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('craftlog_lang', lang);
+    applyTranslations();
+    render();
+  }
+
+  function applyTranslations() {
+    const l = currentLang;
+    // Update lang buttons
+    ['de','en','es','fr'].forEach(lg => {
+      const btn = document.getElementById('lang-' + lg);
+      if (btn) btn.classList.toggle('active', lg === l);
+    });
+
+    // Header
+    const brandLabel = document.querySelector('.brand-label');
+    if (brandLabel) brandLabel.textContent = t('dashboard');
+    const subtitle = document.querySelector('.subtitle');
+    if (subtitle) subtitle.textContent = t('subtitle');
+
+    // Stats labels
+    const setStatLabel = (id, text) => { const el = document.querySelector(`#${id} ~ .stat-label, .stat-label`); };
+
+    // Global stats bar label
+    const globalLabel = document.querySelector('.stats-bar-label');
+    if (globalLabel) globalLabel.textContent = t('global');
+    const allLabels = document.querySelectorAll('.stats-bar-label');
+    if (allLabels[0]) allLabels[0].textContent = t('global');
+    if (allLabels[1]) allLabels[1].textContent = t('mine');
+
+    // Form
+    setText('form-card .card-title', t('newCraft'));
+    setLabel('btn-std', t('drawType'));
+    setLabel('sc-limited', t('scarcity'));
+    setPlaceholder('inp-name', t('playerName'));
+    setPlaceholder('inp-value', '0.00');
+
+    // Buttons
+    const addBtn = document.getElementById('btn-add');
+    if (addBtn && !addBtn.disabled) addBtn.textContent = t('addCraft');
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) logoutBtn.textContent = t('logout');
+
+    // Filter tabs
+    const ftabAll = document.getElementById('ftab-all');
+    if (ftabAll) ftabAll.textContent = t('allFilter');
+
+    // Chart title
+    const chartTitle = document.querySelector('#chart-section .card-title');
+    if (chartTitle) chartTitle.textContent = t('valueOverTime');
+
+    // History title
+    const histTitle = document.querySelector('.list-card .card-title');
+    if (histTitle) histTitle.textContent = t('craftHistory');
+
+    // Empty state
+    const emptyTexts = document.querySelectorAll('#empty-state div');
+    if (emptyTexts[0]) emptyTexts[0].textContent = t('noCrafts');
+    if (emptyTexts[1]) emptyTexts[1].textContent = t('addFirst');
+
+    // API result labels
+    const apiLatestLabel = document.querySelector('#api-latest')?.previousElementSibling;
+    if (apiLatestLabel) apiLatestLabel.textContent = t('latestSale');
+    const apiAvgLabel = document.querySelector('#api-avg')?.previousElementSibling;
+    if (apiAvgLabel) apiAvgLabel.textContent = t('avgLast5');
+    const apiMvLabel = document.querySelector('#api-mv')?.previousElementSibling;
+    if (apiMvLabel) apiMvLabel.textContent = t('marketValue');
+    const useValBtn = document.querySelector('.btn-use-value');
+    if (useValBtn) useValBtn.textContent = t('useValue');
+
+    // Auth screen
+    document.getElementById('tab-login').textContent   = t('login');
+    document.getElementById('tab-register').textContent = t('register');
+    document.getElementById('btn-login').textContent    = t('login');
+    document.getElementById('btn-register').textContent = t('createAccount');
+    document.querySelector('#remember-me + label').textContent = t('rememberMe');
+
+    // Analytics title
+    const analTitle = document.querySelector('.analytics-card .card-title');
+    if (analTitle) analTitle.textContent = t('analyticsByScarcity');
+  }
+
+  function setText(selector, text) {
+    const el = document.querySelector(selector);
+    if (el) el.textContent = text;
+  }
+
+  function setLabel(nearId, text) {}
+
+  function setPlaceholder(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.placeholder = text;
+  }
+
   // ── Init — restore session ────────────────────────────────────────────────
   (async () => {
     updateClues();
+    applyTranslations();
     const savedToken = localStorage.getItem('sb_token') || sessionStorage.getItem('sb_token');
     const savedUser  = localStorage.getItem('sb_user')  || sessionStorage.getItem('sb_user');
     if (savedToken && savedUser) {
