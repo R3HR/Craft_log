@@ -1968,6 +1968,7 @@
       const totalEss = subset.reduce((s,c) => s + (c.essence || BASE_ESSENCE), 0);
       el.textContent = fmt((totalVal / totalEss) * 1000);
     });
+    const globalCount = allCrafts.length;
     const globalValue = allCrafts.reduce((s,c) => s + c.value, 0);
     document.getElementById('stat-count').textContent     = globalCount;
     document.getElementById('stat-ev').textContent        = globalCount ? fmt(globalValue / globalCount) : '€0.00';
