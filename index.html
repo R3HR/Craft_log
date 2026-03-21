@@ -1280,22 +1280,20 @@
       <div class="stat-value" id="stat-total-val">€0.00</div>
       <div class="stat-sub">market value</div>
     </div>
-    <div class="stat-card cyan">
-      <div class="stat-label">EV / 1k Essence</div>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:9px;color:var(--limited);letter-spacing:0.1em">◆ LTD</span>
-          <span class="stat-value" id="global-eff-limited" style="font-size:18px">—</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:9px;color:var(--rare);letter-spacing:0.1em">◆ RARE</span>
-          <span class="stat-value" id="global-eff-rare" style="font-size:18px">—</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:9px;color:var(--sr);letter-spacing:0.1em">◆ SR</span>
-          <span class="stat-value" id="global-eff-sr" style="font-size:18px">—</span>
-        </div>
-      </div>
+    <div class="stat-card" style="border-top:2px solid var(--limited)">
+      <div class="stat-label" style="color:var(--limited)">◆ Limited / 1k Ess</div>
+      <div class="stat-value" id="global-eff-limited" style="color:var(--limited)">—</div>
+      <div class="stat-sub">global EV</div>
+    </div>
+    <div class="stat-card" style="border-top:2px solid var(--rare)">
+      <div class="stat-label" style="color:var(--rare)">◆ Rare / 1k Ess</div>
+      <div class="stat-value" id="global-eff-rare" style="color:var(--rare)">—</div>
+      <div class="stat-sub">global EV</div>
+    </div>
+    <div class="stat-card" style="border-top:2px solid var(--sr)">
+      <div class="stat-label" style="color:var(--sr)">◆ Super Rare / 1k Ess</div>
+      <div class="stat-value" id="global-eff-sr" style="color:var(--sr)">—</div>
+      <div class="stat-sub">global EV</div>
     </div>
   </div>
   <div class="stats-bar-label">👤 Meine</div>
@@ -1658,14 +1656,18 @@
     return (await res.json()).map(rowToApp);
   }
 
-  // Load ALL crafts for analytics only
+  // Load ALL crafts for analytics via Edge Function (bypasses RLS)
   async function dbLoadAll() {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/crafts?order=date.asc`,
-      { headers: authHeaders() }
-    );
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-analytics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + accessToken,
+      }
+    });
     if (!res.ok) throw new Error(await res.text());
-    return (await res.json()).map(rowToApp);
+    const data = await res.json();
+    return (data.crafts || []).map(rowToApp);
   }
 
   function rowToApp(r) {
