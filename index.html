@@ -1190,6 +1190,14 @@
 <!-- ── Auth Screen ───────────────────────────────────────────────────────── -->
 <div id="auth-screen">
   <div class="auth-box">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+      <div class="lang-selector">
+        <button class="lang-btn" id="auth-lang-de" onclick="setLang('de')" title="Deutsch">🇩🇪</button>
+        <button class="lang-btn" id="auth-lang-en" onclick="setLang('en')" title="English">🇬🇧</button>
+        <button class="lang-btn" id="auth-lang-es" onclick="setLang('es')" title="Español">🇪🇸</button>
+        <button class="lang-btn" id="auth-lang-fr" onclick="setLang('fr')" title="Français">🇫🇷</button>
+      </div>
+    </div>
     <div class="auth-logo">CRAFT<span>_</span>LOG</div>
     <div class="auth-sub">Sorare Card Craft Tracker</div>
 
@@ -2207,10 +2215,12 @@
 
   function applyTranslations() {
     const l = currentLang;
-    // Update lang buttons
+    // Update lang buttons (header + auth screen)
     ['de','en','es','fr'].forEach(lg => {
-      const btn = document.getElementById('lang-' + lg);
-      if (btn) btn.classList.toggle('active', lg === l);
+      ['lang-','auth-lang-'].forEach(prefix => {
+        const btn = document.getElementById(prefix + lg);
+        if (btn) btn.classList.toggle('active', lg === l);
+      });
     });
 
     // Header
