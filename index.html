@@ -2552,11 +2552,26 @@
           body: JSON.stringify({ action: 'loadPool', rarity })
         }
       );
-      // Fallback: fetch directly (CORS may work from GitHub Pages)
-      const jsonUrl = `https://sorarehoops.vercel.app/data/football/rewardpool/footballRewardPool2025${rarityFile}.json`;
-      const poolRes = await fetch(jsonUrl);
-      if (!poolRes.ok) throw new Error('Pool nicht verfügbar');
-      chPoolData = await poolRes.json();
+      // Try pool cache first, fallback to sorarehoops
+      let poolData = null;
+      try {
+        const cacheRes = await fetch(`${SUPABASE_URL}/functions/v1/get-pool`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+          body: JSON.stringify({ rarity })
+        });
+        if (cacheRes.ok) poolData = await cacheRes.json();
+      } catch(e) {}
+
+      if (!poolData) {
+        const rarityFile = { limited: 'Limited', rare: 'Rare', super_rare: 'SuperRare' }[rarity];
+        const jsonUrl = `https://sorarehoops.vercel.app/data/football/rewardpool/footballRewardPool2025${rarityFile}.json`;
+        const poolRes = await fetch(jsonUrl);
+        if (!poolRes.ok) throw new Error('Pool nicht verfügbar');
+        poolData = await poolRes.json();
+      }
+
+      chPoolData = poolData;
 
       // Extract unique leagues and nations
       const leagueMap = {}, nationMap = {};
