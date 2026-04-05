@@ -1210,6 +1210,66 @@
 
   .btn-use-value:hover { background: rgba(200,255,74,0.2); }
 
+  /* Autocomplete */
+  .autocomplete-wrap { position: relative; }
+
+  .autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    z-index: 100;
+    max-height: 220px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .autocomplete-dropdown.open { display: block; }
+
+  .ac-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.selected { background: var(--surface2); }
+
+  .ac-img {
+    width: 28px; height: 28px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+
+  .ac-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .ac-sub {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .ac-price {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
   /* ── Nav tabs ────────────────────────────────────────────────── */
   .nav-tabs {
     display: flex;
@@ -1644,7 +1704,10 @@
 
       <div class="form-group">
         <label>Player Name</label>
-        <input type="text" id="inp-name" placeholder="z.B. Haaland, Musiala..." autocomplete="off" onblur="lookupPlayer()" style="width:100%">
+        <div class="autocomplete-wrap">
+          <input type="text" id="inp-name" placeholder="z.B. Haaland, Musiala..." autocomplete="off" style="width:100%" oninput="acSearch(this.value)" onkeydown="acKeydown(event)">
+          <div class="autocomplete-dropdown" id="ac-dropdown"></div>
+        </div>
       </div>
 
       <div class="form-group" id="api-result-box" style="display:none">
@@ -2236,7 +2299,145 @@
   // ── Sorare API Lookup ─────────────────────────────────────────────────────
   let apiMarketValue = null;
 
-  async function lookupPlayer() {
+  // ── Autocomplete ──────────────────────────────────────────────────────────
+  let acPool = null;
+  let acIndex = -1;
+
+  async function acEnsurePool() {
+    if (acPool) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-pool`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+        body: JSON.stringify({ rarity: selectedScarcity })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      // Flatten all players
+      acPool = { rarity: selectedScarcity, players: [] };
+      for (const tier of Object.values(data.pools)) {
+        for (const p of tier.players) acPool.players.push(p);
+      }
+    } catch(e) {}
+  }
+
+  // Reset pool cache when scarcity changes
+  const _origSetScarcity = setScarcity;
+  function setScarcity(sc) {
+    if (sc !== selectedScarcity) acPool = null;
+    _origSetScarcity(sc);
+  }
+
+  function normalize(s) {
+    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, '').trim();
+  }
+
+  async function acSearch(val) {
+    const dropdown = document.getElementById('ac-dropdown');
+    if (val.length < 2) { dropdown.classList.remove('open'); return; }
+
+    await acEnsurePool();
+    if (!acPool) return;
+
+    const search = normalize(val);
+    const parts  = search.split(/\s+/).filter(p => p.length > 1);
+
+    const matches = acPool.players
+      .filter(p => {
+        const name = normalize(p.playerName);
+        return name.includes(search) || parts.every(pt => name.includes(pt)) ||
+               parts.some(pt => name.split(' ').some(w => w.startsWith(pt)));
+      })
+      .sort((a, b) => {
+        const na = normalize(a.playerName), nb = normalize(b.playerName);
+        return (na.startsWith(search) ? 0 : 1) - (nb.startsWith(search) ? 0 : 1);
+      })
+      .slice(0, 8);
+
+    if (!matches.length) { dropdown.classList.remove('open'); return; }
+
+    acIndex = -1;
+    dropdown.innerHTML = matches.map((p, i) => {
+      const price = p.floorPrice?.avgData?.eur ? `€${parseFloat(p.floorPrice.avgData.eur).toFixed(2)}` : '';
+      return `<div class="ac-item" data-idx="${i}" onmousedown="acSelect(${i})">
+        <img class="ac-img" src="${p.pictureUrl || ''}" onerror="this.style.display='none'">
+        <div>
+          <div class="ac-name">${escHtml(p.playerName)}</div>
+          <div class="ac-sub">${escHtml(p.teamName || '')}</div>
+        </div>
+        ${price ? `<span class="ac-price">${price}</span>` : ''}
+      </div>`;
+    }).join('');
+
+    dropdown._matches = matches;
+    dropdown.classList.add('open');
+  }
+
+  function acSelect(idx) {
+    const dropdown = document.getElementById('ac-dropdown');
+    const matches  = dropdown._matches;
+    if (!matches || !matches[idx]) return;
+
+    const p = matches[idx];
+    document.getElementById('inp-name').value = p.playerName;
+    dropdown.classList.remove('open');
+
+    // Auto-fill price data
+    const fp = p.floorPrice;
+    const floorPrice  = fp?.floorData?.eur  ? parseFloat(fp.floorData.eur)  : null;
+    const avgSales    = fp?.avgData?.eur    ? parseFloat(fp.avgData.eur)    : null;
+    let marketValue = null;
+    if (floorPrice && avgSales) marketValue = (floorPrice * 0.65) + (avgSales * 0.35);
+    else marketValue = floorPrice ?? avgSales;
+
+    apiMarketValue = marketValue;
+
+    document.getElementById('api-latest').textContent = floorPrice ? `€${floorPrice.toFixed(2)}` : '—';
+    document.getElementById('api-avg').textContent    = avgSales   ? `€${avgSales.toFixed(2)}`   : '—';
+    document.getElementById('api-mv').textContent     = marketValue ? `€${marketValue.toFixed(2)}` : '—';
+
+    const imgEl = document.getElementById('api-player-img');
+    if (imgEl && p.pictureUrl) { imgEl.src = p.pictureUrl; imgEl.style.display = 'block'; }
+    else if (imgEl) imgEl.style.display = 'none';
+
+    const nameEl = document.getElementById('api-player-name');
+    if (nameEl) nameEl.textContent = p.playerName;
+
+    const infoEl = document.getElementById('api-player-info');
+    if (infoEl) infoEl.textContent = p.teamName || '';
+
+    document.getElementById('api-result-box').style.display = 'block';
+  }
+
+  function acKeydown(e) {
+    const dropdown = document.getElementById('ac-dropdown');
+    const items = dropdown.querySelectorAll('.ac-item');
+    if (!dropdown.classList.contains('open') || !items.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      acIndex = Math.min(acIndex + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('selected', i === acIndex));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      acIndex = Math.max(acIndex - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('selected', i === acIndex));
+    } else if (e.key === 'Enter' && acIndex >= 0) {
+      e.preventDefault();
+      acSelect(acIndex);
+    } else if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+    }
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.autocomplete-wrap')) {
+      document.getElementById('ac-dropdown')?.classList.remove('open');
+    }
+  });
+
+  // ── Sorare Lookup (fallback for manual entry) ─────────────────────────────
     const rawName = document.getElementById('inp-name').value.trim();
     if (!rawName || rawName.length < 2) return;
 
