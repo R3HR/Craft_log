@@ -1209,6 +1209,271 @@
   }
 
   .btn-use-value:hover { background: rgba(200,255,74,0.2); }
+
+  /* ── Nav tabs ────────────────────────────────────────────────── */
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  .nav-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+  }
+
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Craft Helper ────────────────────────────────────────────── */
+  .ch-settings {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+
+  .ch-settings-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .ch-select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .ch-select-group label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .ch-select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 9px 12px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .ch-select:focus { border-color: var(--accent); }
+
+  .ch-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--muted);
+    padding-bottom: 9px;
+  }
+
+  .ch-toggle input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+
+  .btn-generate {
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-generate:hover { opacity: 0.9; }
+  .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Card grid */
+  .ch-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .ch-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ch-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .ch-filter-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ch-pool-info {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+
+  .ch-pool-count {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .ch-tiers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .ch-tier-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  .ch-prices {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .ch-price-row {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .ch-price-label { color: var(--muted); }
+  .ch-price-val   { font-weight: 600; color: var(--text); }
+  .ch-price-val.high { color: var(--accent); }
+
+  .ch-top-players {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ch-top-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .ch-player-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+
+  .ch-player-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--surface2);
+  }
+
+  .ch-player-info { flex: 1; min-width: 0; }
+
+  .ch-player-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ch-player-price {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .ch-stars {
+    color: var(--limited);
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+
+  .ch-view-all {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 7px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .ch-view-all:hover { border-color: var(--accent); color: var(--accent); }
+
+  .ch-empty {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
@@ -1283,6 +1548,15 @@
       <button class="btn-logout" id="btn-logout" onclick="doLogout()">Logout</button>
     </div>
   </header>
+
+  <!-- Nav Tabs -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" id="nav-tracker"      onclick="setPage('tracker')">⚗️ Craft Tracker</button>
+    <button class="nav-tab"        id="nav-crafthelper"  onclick="setPage('crafthelper')">🎯 Craft Helper</button>
+  </nav>
+
+  <!-- ── Page: Tracker ─────────────────────────────────────────── -->
+  <div id="page-tracker">
 
   <!-- Global Stats Bar -->
   <div class="stats-bar-label">🌍 Global</div>
@@ -1378,7 +1652,13 @@
 
       <div class="form-group" id="api-result-box" style="display:none">
         <div class="api-result">
-          <div id="api-player-info" style="font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.05em"></div>
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+            <img id="api-player-img" src="" alt="" style="width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--border);display:none">
+            <div>
+              <div id="api-player-name" style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text)"></div>
+              <div id="api-player-info" style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:0.05em"></div>
+            </div>
+          </div>
           <div class="api-result-row">
             <span class="api-result-label">Letzter Verkauf</span>
             <span class="api-result-val" id="api-latest">—</span>
@@ -1559,6 +1839,60 @@
 
     </div>
   </div>
+
+  </div><!-- /page-tracker -->
+
+  <!-- ── Page: Craft Helper ────────────────────────────────────── -->
+  <div id="page-crafthelper" style="display:none">
+
+    <div class="ch-settings">
+      <div class="ch-settings-row">
+        <div class="ch-select-group">
+          <label>Rarity</label>
+          <select class="ch-select" id="ch-rarity" onchange="chUpdateSettings()">
+            <option value="limited">Limited</option>
+            <option value="rare">Rare</option>
+            <option value="super_rare">Super Rare</option>
+          </select>
+        </div>
+        <div class="ch-select-group">
+          <label>Draw Type</label>
+          <select class="ch-select" id="ch-drawtype" onchange="chUpdateSettings()">
+            <option value="standard">Standard (75%)</option>
+            <option value="special">Special (100%)</option>
+          </select>
+        </div>
+        <div class="ch-select-group">
+          <label>Highest Quality</label>
+          <select class="ch-select" id="ch-quality" onchange="chUpdateSettings()">
+            <option value="none">Not Revealed</option>
+            <option value="star">STAR</option>
+            <option value="t1">T1</option>
+            <option value="t2">T2</option>
+            <option value="t3">T3</option>
+            <option value="t4">T4</option>
+            <option value="t5">T5</option>
+          </select>
+        </div>
+        <label class="ch-toggle">
+          <input type="checkbox" id="ch-5only" onchange="chUpdateSettings()">
+          5 cards only
+        </label>
+        <button class="btn-generate" id="btn-generate" onclick="chGenerate()">
+          Generate 1–10
+        </button>
+      </div>
+    </div>
+
+    <div class="ch-cards-grid" id="ch-cards-grid">
+      <div class="ch-empty">
+        <div style="font-size:32px;margin-bottom:12px">🎯</div>
+        <div>Klicke auf "Generate" um den Craft Helper zu starten.</div>
+      </div>
+    </div>
+
+  </div><!-- /page-crafthelper -->
+
 </div><!-- /main-app -->
 
 <div class="toast" id="toast"></div>
@@ -1939,6 +2273,19 @@
       document.getElementById('api-mv').textContent =
         data.marketValue != null ? `€${data.marketValue.toFixed(2)}` : '—';
 
+      // Show player image
+      const imgEl = document.getElementById('api-player-img');
+      if (imgEl && data.pictureUrl) {
+        imgEl.src = data.pictureUrl;
+        imgEl.style.display = 'block';
+      } else if (imgEl) {
+        imgEl.style.display = 'none';
+      }
+
+      // Show player name
+      const nameEl = document.getElementById('api-player-name');
+      if (nameEl) nameEl.textContent = data.playerName || '';
+
       // Show team + tier
       const infoEl = document.getElementById('api-player-info');
       if (infoEl) {
@@ -2167,6 +2514,200 @@
         }
       }
     });
+  }
+
+  // ── Page navigation ───────────────────────────────────────────────────────
+  function setPage(page) {
+    document.getElementById('page-tracker').style.display     = page === 'tracker'     ? 'block' : 'none';
+    document.getElementById('page-crafthelper').style.display = page === 'crafthelper' ? 'block' : 'none';
+    document.getElementById('nav-tracker').classList.toggle('active',     page === 'tracker');
+    document.getElementById('nav-crafthelper').classList.toggle('active', page === 'crafthelper');
+    if (page === 'crafthelper' && !chPoolData) chLoadPool();
+  }
+
+  // ── Craft Helper ──────────────────────────────────────────────────────────
+  let chPoolData   = null;
+  let chCardCount  = 10;
+  let chLeagues    = [];
+  let chNations    = [];
+
+  // Tier probabilities (standard draw)
+  const TIER_PROBS_STANDARD = { tier_0: 0.03, tier_1: 0.07, tier_2: 0.16, tier_3: 0.23, tier_4: 0.25, tier_5: 0.25 };
+  const TIER_PROBS_SPECIAL  = { tier_0: 0.05, tier_1: 0.10, tier_2: 0.20, tier_3: 0.25, tier_4: 0.20, tier_5: 0.20 };
+  const TIER_LABELS = { tier_0: 'STAR', tier_1: 'T1', tier_2: 'T2', tier_3: 'T3', tier_4: 'T4', tier_5: 'T5' };
+
+  async function chLoadPool() {
+    const rarity = document.getElementById('ch-rarity').value;
+    const rarityFile = { limited: 'Limited', rare: 'Rare', super_rare: 'SuperRare' }[rarity];
+    const btn = document.getElementById('btn-generate');
+    btn.disabled = true;
+    btn.textContent = 'Loading...';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/sorare-proxy`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+          body: JSON.stringify({ action: 'loadPool', rarity })
+        }
+      );
+      // Fallback: fetch directly (CORS may work from GitHub Pages)
+      const jsonUrl = `https://sorarehoops.vercel.app/data/football/rewardpool/footballRewardPool2025${rarityFile}.json`;
+      const poolRes = await fetch(jsonUrl);
+      if (!poolRes.ok) throw new Error('Pool nicht verfügbar');
+      chPoolData = await poolRes.json();
+
+      // Extract unique leagues and nations
+      const leagueMap = {}, nationMap = {};
+      for (const tier of Object.values(chPoolData.pools)) {
+        for (const p of tier.players) {
+          if (p.domesticLeague) leagueMap[p.domesticLeague.slug] = p.domesticLeague.displayName || p.domesticLeague.name;
+          if (p.country) nationMap[p.country.code] = p.country.name;
+        }
+      }
+      chLeagues = Object.entries(leagueMap).sort((a,b) => a[1].localeCompare(b[1]));
+      chNations = Object.entries(nationMap).sort((a,b) => a[1].localeCompare(b[1]));
+
+      chGenerate();
+    } catch(e) {
+      showToast('✗ Pool Fehler: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Generate 1–10';
+    }
+  }
+
+  function chUpdateSettings() {
+    chPoolData = null; // force reload on rarity change
+  }
+
+  function chGenerate() {
+    if (!chPoolData) { chLoadPool(); return; }
+
+    const fiveOnly  = document.getElementById('ch-5only').checked;
+    const drawType  = document.getElementById('ch-drawtype').value;
+    const quality   = document.getElementById('ch-quality').value;
+    const count     = fiveOnly ? 5 : 10;
+    const probs     = drawType === 'special' ? TIER_PROBS_SPECIAL : TIER_PROBS_STANDARD;
+
+    const grid = document.getElementById('ch-cards-grid');
+    grid.innerHTML = '';
+
+    for (let i = 0; i < count; i++) {
+      grid.appendChild(chBuildCard(i + 1, probs, quality));
+    }
+  }
+
+  function chBuildCard(num, probs, quality) {
+    const card = document.createElement('div');
+    card.className = 'ch-card';
+
+    // Filter selects
+    const leagueOpts = ['<option value="">All Leagues</option>',
+      ...chLeagues.map(([slug, name]) => `<option value="${slug}">${name}</option>`)
+    ].join('');
+    const nationOpts = ['<option value="">All Nationalities</option>',
+      ...chNations.map(([code, name]) => `<option value="${code}">${name}</option>`)
+    ].join('');
+
+    card.innerHTML = `
+      <div class="ch-card-title">Card ${num}</div>
+      <div class="ch-filter-row">
+        <select class="ch-select" style="font-size:11px" onchange="chUpdateCard(this)" data-card="${num}" data-type="league">
+          ${leagueOpts}
+        </select>
+        <select class="ch-select" style="font-size:11px" onchange="chUpdateCard(this)" data-card="${num}" data-type="nation">
+          ${nationOpts}
+        </select>
+      </div>
+      <div id="ch-card-body-${num}"></div>
+    `;
+
+    // Render initial pool stats
+    setTimeout(() => chRenderCardBody(num, '', '', probs), 0);
+    return card;
+  }
+
+  function chUpdateCard(sel) {
+    const num      = sel.dataset.card;
+    const cardEl   = sel.closest('.ch-card');
+    const leagueSel = cardEl.querySelector('[data-type="league"]');
+    const nationSel = cardEl.querySelector('[data-type="nation"]');
+    const probs    = document.getElementById('ch-drawtype').value === 'special' ? TIER_PROBS_SPECIAL : TIER_PROBS_STANDARD;
+    chRenderCardBody(num, leagueSel.value, nationSel.value, probs);
+  }
+
+  function chRenderCardBody(num, leagueFilter, nationFilter, probs) {
+    const body = document.getElementById(`ch-card-body-${num}`);
+    if (!body || !chPoolData) return;
+
+    // Filter players
+    let allPlayers = [];
+    for (const [tier, data] of Object.entries(chPoolData.pools)) {
+      for (const p of data.players) {
+        if (leagueFilter && p.domesticLeague?.slug !== leagueFilter) continue;
+        if (nationFilter && p.country?.code !== nationFilter) continue;
+        allPlayers.push({ ...p, tier });
+      }
+    }
+
+    // Tier counts
+    const tierCounts = {};
+    for (const p of allPlayers) tierCounts[p.tier] = (tierCounts[p.tier] || 0) + 1;
+
+    // Price stats
+    const prices = allPlayers
+      .map(p => p.floorPrice?.avgData?.eur ? parseFloat(p.floorPrice.avgData.eur) : null)
+      .filter(v => v !== null && v > 0);
+
+    const highest = prices.length ? Math.max(...prices) : 0;
+    const lowest  = prices.length ? Math.min(...prices) : 0;
+    const average = prices.length ? prices.reduce((a,b) => a+b,0) / prices.length : 0;
+
+    // Top 3 by floor price
+    const sorted = [...allPlayers]
+      .filter(p => p.floorPrice?.avgData?.eur)
+      .sort((a,b) => parseFloat(b.floorPrice.avgData.eur) - parseFloat(a.floorPrice.avgData.eur))
+      .slice(0, 3);
+
+    // Tier badges
+    const tierBadges = Object.entries(TIER_LABELS).map(([key, label]) => {
+      const cnt  = tierCounts[key] || 0;
+      const prob = Math.round((probs[key] || 0) * 100);
+      return `<span class="ch-tier-badge">${label}: ${prob}% (${cnt})</span>`;
+    }).join('');
+
+    // Top 3 HTML
+    const top3html = sorted.map(p => {
+      const price = parseFloat(p.floorPrice.avgData.eur);
+      const stars = price > 100 ? '★★★★★' : price > 50 ? '★★★★' : price > 20 ? '★★★' : price > 5 ? '★★' : '★';
+      return `
+        <div class="ch-player-row">
+          <img class="ch-player-img" src="${p.pictureUrl || ''}" alt="" onerror="this.style.display='none'">
+          <div class="ch-player-info">
+            <div class="ch-player-name">${escHtml(p.playerName)}</div>
+            <div class="ch-player-price">€${price.toFixed(2)}</div>
+          </div>
+          <span class="ch-stars">${stars}</span>
+        </div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div class="ch-pool-info">
+        <div class="ch-pool-count">${allPlayers.length} Players</div>
+        <div class="ch-tiers">${tierBadges}</div>
+      </div>
+      <div class="ch-prices">
+        <div class="ch-price-row"><span class="ch-price-label">Highest Price:</span><span class="ch-price-val high">€${highest.toFixed(2)}</span></div>
+        <div class="ch-price-row"><span class="ch-price-label">Average Price:</span><span class="ch-price-val">€${average.toFixed(2)}</span></div>
+        <div class="ch-price-row"><span class="ch-price-label">Lowest Price:</span><span class="ch-price-val">€${lowest.toFixed(2)}</span></div>
+      </div>
+      <div class="ch-top-players">
+        <div class="ch-top-label">Top 3 Players</div>
+        ${top3html || '<div style="color:var(--muted);font-size:10px">No players found</div>'}
+      </div>
+    `;
   }
 
   // ── Toast ─────────────────────────────────────────────────────────────────
