@@ -1243,7 +1243,8 @@
   .ac-item:hover, .ac-item.selected { background: var(--surface2); }
 
   .ac-img {
-    width: 28px; height: 28px;
+    width: 36px;
+    height: 50px;
     border-radius: 4px;
     object-fit: cover;
     flex-shrink: 0;
@@ -2338,17 +2339,28 @@
     const search = normalize(val);
     const parts  = search.split(/\s+/).filter(p => p.length > 1);
 
-    const matches = acPool.players
-      .filter(p => {
-        const name = normalize(p.playerName);
-        return name.includes(search) || parts.every(pt => name.includes(pt)) ||
-               parts.some(pt => name.split(' ').some(w => w.startsWith(pt)));
-      })
-      .sort((a, b) => {
-        const na = normalize(a.playerName), nb = normalize(b.playerName);
-        return (na.startsWith(search) ? 0 : 1) - (nb.startsWith(search) ? 0 : 1);
-      })
-      .slice(0, 8);
+    // Score each player
+    const scored = acPool.players.map(p => {
+      const name = normalize(p.playerName);
+      let s = 0;
+      if (name === search) s = 100;
+      else if (name.startsWith(search)) s = 90;
+      else if (name.includes(search)) s = 80;
+      else if (parts.length > 1 && parts.every(pt => name.includes(pt))) s = 75;
+      else if (parts.some(pt => name.split(' ').some(w => w.startsWith(pt) && pt.length > 2))) s = 60;
+      else if (parts.some(pt => name.includes(pt) && pt.length > 3)) s = 40;
+      return { p, s };
+    }).filter(x => x.s >= 60);
+
+    // If we have a high-score match (≥90), only show results with score ≥75
+    const maxScore = scored.length ? Math.max(...scored.map(x => x.s)) : 0;
+    const threshold = maxScore >= 90 ? 75 : 40;
+
+    const matches = scored
+      .filter(x => x.s >= threshold)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 6)
+      .map(x => x.p);
 
     if (!matches.length) { dropdown.classList.remove('open'); return; }
 
