@@ -2434,6 +2434,7 @@
   });
 
   // ── Sorare Lookup (fallback for manual entry) ─────────────────────────────
+  async function lookupPlayer() {
     const rawName = document.getElementById('inp-name').value.trim();
     if (!rawName || rawName.length < 2) return;
 
