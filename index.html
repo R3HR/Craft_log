@@ -1644,10 +1644,7 @@
 
       <div class="form-group">
         <label>Player Name</label>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="inp-name" placeholder="z.B. Josip Stanisic" autocomplete="off" style="flex:1">
-          <button class="btn-lookup" id="btn-lookup" onclick="lookupPlayer()" title="Marktwert laden">⟳</button>
-        </div>
+        <input type="text" id="inp-name" placeholder="z.B. Haaland, Musiala..." autocomplete="off" onblur="lookupPlayer()" style="width:100%">
       </div>
 
       <div class="form-group" id="api-result-box" style="display:none">
@@ -2241,12 +2238,10 @@
 
   async function lookupPlayer() {
     const rawName = document.getElementById('inp-name').value.trim();
-    if (!rawName) { showToast('⚠ Spielername eingeben'); return; }
+    if (!rawName || rawName.length < 2) return;
 
-    const btn = document.getElementById('btn-lookup');
-    btn.disabled = true;
-    btn.textContent = '…';
-    document.getElementById('api-result-box').style.display = 'none';
+    const resultBox = document.getElementById('api-result-box');
+    resultBox.style.display = 'none';
 
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-proxy`, {
@@ -2263,7 +2258,6 @@
 
       apiMarketValue = data.marketValue;
 
-      // Auto-fill confirmed player name
       if (data.playerName) document.getElementById('inp-name').value = data.playerName;
 
       document.getElementById('api-latest').textContent =
@@ -2273,7 +2267,6 @@
       document.getElementById('api-mv').textContent =
         data.marketValue != null ? `€${data.marketValue.toFixed(2)}` : '—';
 
-      // Show player image
       const imgEl = document.getElementById('api-player-img');
       if (imgEl && data.pictureUrl) {
         imgEl.src = data.pictureUrl;
@@ -2282,24 +2275,19 @@
         imgEl.style.display = 'none';
       }
 
-      // Show player name
       const nameEl = document.getElementById('api-player-name');
       if (nameEl) nameEl.textContent = data.playerName || '';
 
-      // Show team + tier
       const infoEl = document.getElementById('api-player-info');
       if (infoEl) {
         const tier = data.tier ? data.tier.replace('tier_', 'T') : '';
         infoEl.textContent = `${data.teamName || ''}${tier ? ' · ' + tier : ''}`;
       }
 
-      document.getElementById('api-result-box').style.display = 'block';
+      resultBox.style.display = 'block';
 
     } catch(e) {
       showToast('✗ API Fehler: ' + e.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '⟳';
     }
   }
 
