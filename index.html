@@ -2180,6 +2180,7 @@
 
   // ── Scarcity toggle ────────────────────────────────────────────────────────
   function setScarcity(sc) {
+    if (sc !== selectedScarcity) acPool = null;
     selectedScarcity = sc;
     SCARCITIES.forEach(s => {
       document.getElementById('sc-' + s).classList.toggle('active', s === sc);
@@ -2321,12 +2322,7 @@
     } catch(e) {}
   }
 
-  // Reset pool cache when scarcity changes
-  const _origSetScarcity = setScarcity;
-  function setScarcity(sc) {
-    if (sc !== selectedScarcity) acPool = null;
-    _origSetScarcity(sc);
-  }
+  // Reset pool cache when scarcity changes — handled in setScarcity below
 
   function normalize(s) {
     return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, '').trim();
