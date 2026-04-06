@@ -220,131 +220,128 @@
   /* ── Mobile optimizations ─────────────────────────────────────── */
   @media (max-width: 600px) {
 
-    .app {
-      padding: 16px 12px 100px;
-    }
+    .app { padding: 12px 10px 90px; }
 
     /* Header */
-    header {
-      margin-bottom: 20px;
-    }
+    header { margin-bottom: 16px; flex-wrap: nowrap; gap: 8px; }
+    h1 { font-size: 26px; }
+    .brand-label { font-size: 8px; }
+    .subtitle { font-size: 9px; }
+    .user-bar { flex-direction: row; align-items: center; gap: 6px; flex-wrap: nowrap; }
+    .lang-selector { gap: 2px; }
+    .lang-btn { width: 24px; height: 24px; font-size: 9px; }
+    .user-email { display: none; }
+    .btn-logout { font-size: 9px; padding: 4px 8px; }
 
-    h1 {
-      font-size: 32px;
-    }
-
-    .user-bar {
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
-    }
-
-    .user-email {
-      font-size: 9px;
-      max-width: 140px;
-    }
+    /* Nav tabs */
+    .nav-tabs { gap: 0; margin-bottom: 16px; }
+    .nav-tab { font-size: 10px; padding: 8px 10px; }
 
     /* Stats bars */
     .stats-bar {
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .stats-bar .stat-card:last-child {
-      grid-column: span 2;
-    }
-
-    .stats-bar.small .stat-card {
-      padding: 8px 10px;
-    }
-
-    .stats-bar-label {
-      margin-top: 8px;
-    }
-
-    /* Form card — not sticky on mobile */
-    .form-card {
-      position: static;
-      padding: 16px;
-    }
-
-    /* Scarcity toggle — full labels */
-    .sc-btn {
-      font-size: 9px;
-      padding: 6px 4px;
-    }
-
-    .draw-btn {
-      font-size: 10px;
-      padding: 6px 4px;
-    }
-
-    /* Clues grid */
-    .clues-grid {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr !important;
       gap: 6px;
+      margin-bottom: 8px;
     }
+    .stat-card { padding: 10px 12px; }
+    .stat-value { font-size: 18px; }
+    .stat-label { font-size: 8px; }
+    .stat-sub { font-size: 9px; }
+    .sc-breakdown { margin-top: 6px; padding-top: 6px; }
+    .sc-row { font-size: 9px; }
+    .stats-bar-label { font-size: 8px; margin-top: 6px; margin-bottom: 4px; }
 
-    .clue-label {
-      font-size: 9px;
-    }
+    /* Form card */
+    .form-card { position: static; padding: 12px; }
+    .card-title { font-size: 10px; margin-bottom: 12px; }
+    .form-group { margin-bottom: 12px; }
+    .sc-btn { font-size: 9px; padding: 6px 4px; }
+    .draw-btn { font-size: 9px; padding: 6px 4px; }
+    .scarcity-toggle, .draw-toggle { padding: 2px; }
+    input[type="text"], input[type="number"] { font-size: 13px; padding: 9px 12px; }
 
-    /* Analytics panels */
-    .sc-panel-body {
-      grid-template-columns: 1fr 1fr;
-    }
+    /* Clues */
+    .clues-grid { grid-template-columns: 1fr 1fr; gap: 5px; }
+    .clue-item { padding: 6px 7px; }
+    .clue-label { font-size: 9px; }
+    .clue-cost { font-size: 8px; }
+    .essence-preview { padding: 7px 10px; }
+    .essence-value { font-size: 14px; }
 
-    .sc-stat-value {
+    /* API result */
+    .api-result { padding: 10px 12px; }
+    #api-player-img { width: 44px; height: 60px; }
+
+    /* Add craft button — fixed at bottom */
+    .btn-submit {
+      position: fixed;
+      bottom: 12px;
+      left: 10px;
+      right: 10px;
+      width: calc(100% - 20px);
+      z-index: 50;
+      border-radius: 10px;
+      padding: 14px;
       font-size: 13px;
+      box-shadow: 0 4px 20px rgba(200,255,74,0.25);
     }
 
-    /* Filter tabs — scrollable */
+    /* Analytics */
+    .analytics-card { padding: 14px; }
+    .sc-panel-body { grid-template-columns: 1fr 1fr; padding: 10px 12px; }
+    .sc-stat-value { font-size: 13px; }
+    .sc-stat-label { font-size: 8px; }
+    .sc-panel-header { padding: 8px 12px; }
+    .sc-panel-title { font-size: 11px; }
+
+    /* Filter tabs */
     .filter-tabs {
       overflow-x: auto;
       flex-wrap: nowrap;
       padding-bottom: 4px;
       -webkit-overflow-scrolling: touch;
+      gap: 4px;
     }
+    .filter-tab { white-space: nowrap; flex-shrink: 0; font-size: 9px; padding: 4px 8px; }
 
-    .filter-tab {
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    /* Table — horizontal scroll */
-    .table-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    table {
-      min-width: 520px;
-    }
-
-    /* Auth box */
-    .auth-box {
-      padding: 28px 20px;
-    }
+    /* Table */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 480px; font-size: 11px; }
+    .player-name { font-size: 12px; }
+    tbody td { padding: 8px 10px; }
 
     /* Chart */
-    .chart-container {
-      height: 140px;
-    }
+    .chart-container { height: 120px; }
+    .chart-card { padding: 14px; }
 
-    /* Add craft button — fixed at bottom */
-    .btn-submit {
-      position: fixed;
-      bottom: 16px;
-      left: 12px;
-      right: 12px;
-      width: calc(100% - 24px);
-      z-index: 50;
-      border-radius: 10px;
-      padding: 14px;
-      font-size: 14px;
-      box-shadow: 0 4px 20px rgba(200,255,74,0.25);
-    }
+    /* Auth */
+    .auth-box { padding: 24px 16px; }
+    .auth-logo { font-size: 24px; }
+
+    /* Craft Helper */
+    .ch-settings { padding: 12px; }
+    .ch-settings-row { gap: 8px; }
+    .ch-select-group { min-width: 100%; }
+    .ch-select { font-size: 11px; padding: 8px 10px; }
+    .btn-generate { width: 100%; padding: 10px; margin-top: 4px; }
+    .ch-toggle { font-size: 10px; }
+    .ch-cards-grid { grid-template-columns: 1fr !important; gap: 12px; }
+    .ch-card { padding: 12px; }
+    .ch-card-title { font-size: 10px; }
+    .ch-pool-count { font-size: 12px; }
+    .ch-tier-badge { font-size: 8px; padding: 2px 5px; }
+    .ch-prices { font-size: 10px; }
+    .ch-player-name { font-size: 10px; }
+    .ch-player-price { font-size: 9px; }
+    .ch-player-img { width: 28px; height: 40px; }
+
+    /* Autocomplete */
+    .ac-item { padding: 6px 10px; gap: 8px; }
+    .ac-name { font-size: 11px; }
+    .ac-sub { font-size: 9px; }
+    .ac-price { font-size: 10px; }
+    .ac-img { width: 28px; height: 40px; }
+    .autocomplete-dropdown { max-height: 180px; }
   }
 
   /* Form */
@@ -1380,7 +1377,7 @@
   /* Card grid */
   .ch-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
 
@@ -2307,6 +2304,17 @@
 
   async function acEnsurePool() {
     if (acPool) return;
+
+    // Check sessionStorage cache first
+    const cacheKey = `craftlog_pool_${selectedScarcity}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        acPool = JSON.parse(cached);
+        return;
+      } catch(e) {}
+    }
+
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-pool`, {
         method: 'POST',
@@ -2315,11 +2323,12 @@
       });
       if (!res.ok) return;
       const data = await res.json();
-      // Flatten all players
       acPool = { rarity: selectedScarcity, players: [] };
       for (const tier of Object.values(data.pools)) {
         for (const p of tier.players) acPool.players.push(p);
       }
+      // Cache in sessionStorage
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(acPool)); } catch(e) {}
     } catch(e) {}
   }
 
@@ -2750,6 +2759,19 @@
           body: JSON.stringify({ action: 'loadPool', rarity })
         }
       );
+      // Check sessionStorage cache first
+      const chCacheKey = `craftlog_chpool_${rarity}`;
+      const chCached = sessionStorage.getItem(chCacheKey);
+      if (chCached) {
+        try {
+          chPoolData = JSON.parse(chCached);
+          chGenerate();
+          btn.disabled = false;
+          btn.textContent = 'Generate 1–10';
+          return;
+        } catch(e) {}
+      }
+
       // Try pool cache first, fallback to sorarehoops
       let poolData = null;
       try {
@@ -2770,6 +2792,8 @@
       }
 
       chPoolData = poolData;
+      // Cache in sessionStorage
+      try { sessionStorage.setItem(chCacheKey, JSON.stringify(chPoolData)); } catch(e) {}
 
       // Extract unique leagues and nations
       const leagueMap = {}, nationMap = {};
@@ -2807,9 +2831,36 @@
     const grid = document.getElementById('ch-cards-grid');
     grid.innerHTML = '';
 
+    // Render cards lazily with IntersectionObserver
+    const placeholders = [];
     for (let i = 0; i < count; i++) {
-      grid.appendChild(chBuildCard(i + 1, probs, quality));
+      const placeholder = document.createElement('div');
+      placeholder.className = 'ch-card';
+      placeholder.style.minHeight = '300px';
+      placeholder.innerHTML = `
+        <div class="ch-card-title">Card ${i + 1}</div>
+        <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--muted);font-size:11px">
+          Loading...
+        </div>`;
+      placeholder.dataset.cardNum = i + 1;
+      placeholder.dataset.loaded = 'false';
+      grid.appendChild(placeholder);
+      placeholders.push(placeholder);
     }
+
+    // Use IntersectionObserver for lazy loading
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.target.dataset.loaded === 'false') {
+          entry.target.dataset.loaded = 'true';
+          const num = parseInt(entry.target.dataset.cardNum);
+          const card = chBuildCard(num, probs, quality);
+          entry.target.replaceWith(card);
+        }
+      });
+    }, { rootMargin: '100px' });
+
+    placeholders.forEach(p => observer.observe(p));
   }
 
   function chBuildCard(num, probs, quality) {
