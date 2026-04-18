@@ -3247,7 +3247,7 @@
   }
 
   const SORARE_CLIENT_ID  = 'JwRtoOABm0DtyOM5_xDKlFaF2-gp7uUAS4bQeQcuUjw';
-  const SORARE_CALLBACK   = 'https://craftlog.pro';
+  const SORARE_CALLBACK   = 'https://craftlog.pro/auth/callback';
 
   function loginWithSorare() {
     const authUrl = `https://sorare.com/oauth/authorize?client_id=${SORARE_CLIENT_ID}&redirect_uri=${encodeURIComponent(SORARE_CALLBACK)}&response_type=code&scope=`;
@@ -3324,6 +3324,49 @@
     updateClues();
     applyTranslations();
     await handleOAuthCallback();
+
+    // Check if returning from Sorare OAuth via callback page
+    const sorareUser = localStorage.getItem('sorare_user');
+    const sorareToken = localStorage.getItem('sorare_token');
+    if (sorareToken && sorareUser && !accessToken) {
+      try {
+        const user = JSON.parse(sorareUser);
+        const slug     = user?.slug || user?.nickname || 'user';
+        const email    = `${slug}@sorare.craftlog.pro`;
+        const password = `sorare_${slug}_craftlog`;
+
+        let sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+          body: JSON.stringify({ email, password }),
+        });
+        let sbData = await sbRes.json();
+
+        if (!sbData.access_token) {
+          const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+            body: JSON.stringify({ email, password }),
+          });
+          sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+            body: JSON.stringify({ email, password }),
+          });
+          sbData = await sbRes.json();
+        }
+
+        if (sbData.access_token) {
+          localStorage.removeItem('sorare_token');
+          localStorage.removeItem('sorare_refresh');
+          localStorage.removeItem('sorare_user');
+          onLoggedIn(sbData);
+          showToast(`✓ Willkommen, ${user?.nickname || slug}!`);
+          return;
+        }
+      } catch(e) {}
+    }
+
     const savedToken = localStorage.getItem('sb_token') || sessionStorage.getItem('sb_token');
     const savedUser  = localStorage.getItem('sb_user')  || sessionStorage.getItem('sb_user');
     if (savedToken && savedUser) {
