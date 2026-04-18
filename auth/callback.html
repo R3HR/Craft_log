@@ -177,12 +177,20 @@
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      // Store tokens in localStorage so craftlog.pro can read them
+      // Fetch user info separately
+      const userRes = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ANON_KEY },
+        body: JSON.stringify({ action: 'userinfo', access_token: data.access_token }),
+      });
+      const user = await userRes.json();
+
+      // Store tokens in localStorage
       localStorage.setItem('sorare_access_token',  data.access_token);
       localStorage.setItem('sorare_refresh_token', data.refresh_token);
-      localStorage.setItem('sorare_user',          JSON.stringify(data.user));
+      localStorage.setItem('sorare_user',          JSON.stringify(user));
 
-      const nickname = data.user?.nickname || 'Manager';
+      const nickname = user?.nickname || user?.slug || 'Manager';
       showSuccess(nickname);
 
       // Auto-redirect after 2 seconds
