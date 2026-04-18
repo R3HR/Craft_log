@@ -193,8 +193,8 @@
       const nickname = user?.nickname || user?.slug || 'Manager';
       showSuccess(nickname);
 
-      // Auto-redirect after 2 seconds
-      setTimeout(() => { window.location.href = 'https://craftlog.pro'; }, 2000);
+      // Auto-redirect after 1.5 seconds — give localStorage time to persist
+      setTimeout(() => { window.location.href = 'https://craftlog.pro'; }, 1500);
 
     } catch(e) {
       showError(e.message);
