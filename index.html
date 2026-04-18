@@ -3328,14 +3328,13 @@
     // Check if returning from Sorare OAuth via callback page
     const sorareUser  = localStorage.getItem('sorare_user');
     const sorareToken = localStorage.getItem('sorare_access_token');
+    console.log('[Init] sorareToken:', !!sorareToken, 'sorareUser:', !!sorareUser, 'accessToken:', !!accessToken);
     if (sorareToken && sorareUser && !accessToken) {
-      console.log('[Sorare] Found tokens, attempting auto-login...');
       try {
         const user     = JSON.parse(sorareUser);
         const slug     = user?.slug || user?.nickname || 'user';
         const email    = `${slug}@sorare.craftlog.pro`;
         const password = `sorare_${slug}_craftlog`;
-        console.log('[Sorare] Trying email:', email);
 
         let sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
           method: 'POST',
@@ -3343,10 +3342,8 @@
           body: JSON.stringify({ email, password }),
         });
         let sbData = await sbRes.json();
-        console.log('[Sorare] Login attempt:', sbData);
 
         if (!sbData.access_token) {
-          console.log('[Sorare] Login failed, trying signup...');
           await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
@@ -3358,7 +3355,6 @@
             body: JSON.stringify({ email, password }),
           });
           sbData = await sbRes.json();
-          console.log('[Sorare] After signup login:', sbData);
         }
 
         if (sbData.access_token) {
@@ -3370,7 +3366,6 @@
           return;
         }
       } catch(e) {
-        console.error('[Sorare] Auto-login error:', e);
       }
     }
 
