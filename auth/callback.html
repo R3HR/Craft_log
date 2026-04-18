@@ -178,9 +178,9 @@
       if (data.error) throw new Error(data.error);
 
       // Store tokens in localStorage so craftlog.pro can read them
-      localStorage.setItem('sorare_token',   data.access_token);
-      localStorage.setItem('sorare_refresh',  data.refresh_token);
-      localStorage.setItem('sorare_user',     JSON.stringify(data.user));
+      localStorage.setItem('sorare_access_token',  data.access_token);
+      localStorage.setItem('sorare_refresh_token', data.refresh_token);
+      localStorage.setItem('sorare_user',          JSON.stringify(data.user));
 
       const nickname = data.user?.nickname || 'Manager';
       showSuccess(nickname);
