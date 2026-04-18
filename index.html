@@ -3247,7 +3247,7 @@
   }
 
   const SORARE_CLIENT_ID  = 'JwRtoOABm0DtyOM5_xDKlFaF2-gp7uUAS4bQeQcuUjw';
-  const SORARE_CALLBACK   = 'https://craftlog.pro/auth/callback';
+  const SORARE_CALLBACK   = 'https://craftlog.pro';
 
   function loginWithSorare() {
     const authUrl = `https://sorare.com/oauth/authorize?client_id=${SORARE_CLIENT_ID}&redirect_uri=${encodeURIComponent(SORARE_CALLBACK)}&response_type=code&scope=`;
@@ -3259,37 +3259,60 @@
     const code   = params.get('code');
     if (!code) return;
 
-    // Remove code from URL
     window.history.replaceState({}, '', window.location.pathname);
 
     try {
+      // Exchange Sorare code for token
       const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + ANON_KEY },
-        body: JSON.stringify({
-          action:       'exchange',
-          code,
-          redirect_uri: SORARE_CALLBACK,
-        }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ANON_KEY },
+        body: JSON.stringify({ action: 'exchange', code, redirect_uri: SORARE_CALLBACK }),
       });
 
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
       // Store Sorare token
-      sessionStorage.setItem('sorare_token',   data.access_token);
-      sessionStorage.setItem('sorare_refresh',  data.refresh_token);
-      sessionStorage.setItem('sorare_user',     JSON.stringify(data.user));
+      sessionStorage.setItem('sorare_token',  data.access_token);
+      sessionStorage.setItem('sorare_refresh', data.refresh_token);
+      sessionStorage.setItem('sorare_user',    JSON.stringify(data.user));
 
-      // Show success — user still needs Supabase account
-      showToast(`✓ Willkommen, ${data.user?.nickname || 'Manager'}!`);
+      const slug     = data.user?.slug || data.user?.nickname || 'user';
+      const email    = `${slug}@sorare.craftlog.pro`;
+      const password = `sorare_${slug}_craftlog`;
 
-      // Auto-fill email if we have it (we don't — Sorare doesn't share email)
-      // Just show the app if already logged into Supabase
-      if (accessToken) {
-        showApp();
+      // Try login first, if fails create account
+      let sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        body: JSON.stringify({ email, password }),
+      });
+
+      let sbData = await sbRes.json();
+
+      // If login fails, create account
+      if (!sbData.access_token) {
+        const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+          body: JSON.stringify({ email, password }),
+        });
+        const signupData = await signupRes.json();
+
+        // Login after signup
+        sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+          body: JSON.stringify({ email, password }),
+        });
+        sbData = await sbRes.json();
       }
+
+      if (!sbData.access_token) throw new Error('Supabase login failed');
+
+      // Login to app
+      onLoggedIn(sbData);
+      showToast(`✓ Willkommen, ${data.user?.nickname || slug}!`);
 
     } catch(e) {
       showToast('✗ Sorare Login fehlgeschlagen: ' + e.message);
