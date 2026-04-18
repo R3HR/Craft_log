@@ -3265,7 +3265,7 @@
       // Exchange Sorare code for token
       const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ANON_KEY },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
         body: JSON.stringify({ action: 'exchange', code, redirect_uri: SORARE_CALLBACK }),
       });
 
@@ -3284,7 +3284,7 @@
       // Try login first, if fails create account
       let sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
         body: JSON.stringify({ email, password }),
       });
 
@@ -3294,7 +3294,7 @@
       if (!sbData.access_token) {
         const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
           body: JSON.stringify({ email, password }),
         });
         const signupData = await signupRes.json();
@@ -3302,7 +3302,7 @@
         // Login after signup
         sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
           body: JSON.stringify({ email, password }),
         });
         sbData = await sbRes.json();
@@ -3339,7 +3339,7 @@
 
         let sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
           body: JSON.stringify({ email, password }),
         });
         let sbData = await sbRes.json();
@@ -3349,12 +3349,12 @@
           console.log('[Sorare] Login failed, trying signup...');
           await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
             body: JSON.stringify({ email, password }),
           });
           sbRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
             body: JSON.stringify({ email, password }),
           });
           sbData = await sbRes.json();
