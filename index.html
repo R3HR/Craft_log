@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sorare Craft Tracker</title>
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-cPENDP67CeFCnZPnJjER5.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -2097,7 +2103,7 @@
     storage.setItem('sb_user', JSON.stringify(currentUser));
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
-    document.getElementById('user-email-display').textContent = currentUser.email;
+    const sorareU = localStorage.getItem('sorare_user'); const displayName = sorareU ? JSON.parse(sorareU).nickname || currentUser.email.split('@')[0] : currentUser.email.split('@sorare')[0]; document.getElementById('user-email-display').textContent = displayName;
     loadAndRender();
   }
 
@@ -3376,7 +3382,7 @@
       currentUser = JSON.parse(savedUser);
       document.getElementById('auth-screen').style.display = 'none';
       document.getElementById('main-app').style.display    = 'block';
-      document.getElementById('user-email-display').textContent = currentUser.email;
+      const sorareU = localStorage.getItem('sorare_user'); const displayName = sorareU ? JSON.parse(sorareU).nickname || currentUser.email.split('@')[0] : currentUser.email.split('@sorare')[0]; document.getElementById('user-email-display').textContent = displayName;
       loadAndRender();
     }
   })();
