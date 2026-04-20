@@ -3279,8 +3279,8 @@
       if (data.error) throw new Error(data.error);
 
       // Store Sorare token
-      sessionStorage.setItem('sorare_token',  data.access_token);
-      sessionStorage.setItem('sorare_refresh', data.refresh_token);
+      sessionStorage.setItem('sorare_access_token',  data.access_token);
+      sessionStorage.setItem('sorare_refresh_token', data.refresh_token);
       sessionStorage.setItem('sorare_user',    JSON.stringify(data.user));
 
       const slug     = data.user?.slug || data.user?.nickname || 'user';
