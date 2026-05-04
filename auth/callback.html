@@ -203,8 +203,10 @@
       const nickname = user?.nickname || user?.slug || 'Manager';
       showSuccess(nickname);
 
-      // Auto-redirect after 1.5 seconds — give localStorage time to persist
-      setTimeout(() => { window.location.href = 'https://craftlog.pro'; }, 1500);
+      // Redirect — back to sorion portfolio or craftlog
+      const returnTo = localStorage.getItem('sorare_return_to') || 'https://craftlog.pro';
+      localStorage.removeItem('sorare_return_to');
+      setTimeout(() => { window.location.href = returnTo; }, 1500);
 
     } catch(e) {
       showError(e.message);
