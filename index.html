@@ -3331,7 +3331,7 @@
     applyTranslations();
     await handleOAuthCallback();
 
-    // Check if returning from Sorare OAuth via callback page
+    // Check if returning from Sorare OAuth — sb_token already set by callback.html
     const sorareUser  = localStorage.getItem('sorare_user');
     const sorareToken = localStorage.getItem('sorare_access_token');
     console.log('[Init] sorareToken:', !!sorareToken, 'sorareUser:', !!sorareUser, 'accessToken:', !!accessToken);
