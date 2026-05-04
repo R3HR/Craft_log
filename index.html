@@ -3256,6 +3256,7 @@
   const SORARE_CALLBACK   = 'https://craftlog.pro/auth/callback';
 
   function loginWithSorare() {
+    localStorage.setItem('sorare_return_to', 'https://craftlog.pro');
     const authUrl = `https://sorare.com/oauth/authorize?client_id=${SORARE_CLIENT_ID}&redirect_uri=${encodeURIComponent(SORARE_CALLBACK)}&response_type=code&scope=`;
     window.location.href = authUrl;
   }
