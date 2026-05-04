@@ -203,9 +203,9 @@
       const nickname = user?.nickname || user?.slug || 'Manager';
       showSuccess(nickname);
 
-      // Redirect — back to sorion portfolio or craftlog
-      const returnTo = localStorage.getItem('sorare_return_to') || 'https://craftlog.pro';
-      localStorage.removeItem('sorare_return_to');
+      // Redirect — use state parameter or default to craftlog
+      const state    = params.get('state');
+      const returnTo = state ? decodeURIComponent(state) : 'https://craftlog.pro';
       setTimeout(() => { window.location.href = returnTo; }, 1500);
 
     } catch(e) {
