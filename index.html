@@ -2914,30 +2914,15 @@
         grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace">
           Loading ${rarity} cards... ${pfCards.length} loaded</div>`;
 
-        const res = await fetch('https://api.sorare.com/graphql', {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: `query ($slug: String!, $after: String, $first: Int!) {
-              user(slug: $slug) {
-                cards(sport: FOOTBALL, rarities: [${rarity}], first: $first, after: $after) {
-                  pageInfo { hasNextPage endCursor }
-                  nodes {
-                    slug
-                    rarityTyped
-                    pictureUrl
-                    anyPlayer { slug displayName }
-                  }
-                }
-              }
-            }`,
-            variables: { slug, first: 50, after: cursor },
-          }),
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+          body: JSON.stringify({ action: 'user_cards', slug, rarity, cursor }),
         });
 
         const data     = await res.json();
-        const cards    = data?.data?.user?.cards?.nodes ?? [];
-        const pageInfo = data?.data?.user?.cards?.pageInfo ?? {};
+        const cards    = data?.nodes ?? [];
+        const pageInfo = data?.pageInfo ?? {};
         pfCards.push(...cards);
         cursor = pageInfo.hasNextPage ? pageInfo.endCursor : null;
         page++;
