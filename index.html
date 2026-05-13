@@ -2970,7 +2970,7 @@
       }
     }
     for (const [scarcity, players] of Object.entries(byScarcity)) {
-      const unique = [...new Map((players as any[]).map(p => [p.player_slug, p])).values()];
+      const unique = [...new Map(players.map(p => [p.player_slug, p])).values()];
       await fetch(`${SUPABASE_URL}/functions/v1/add-missing-players`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
