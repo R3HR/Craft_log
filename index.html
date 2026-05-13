@@ -2876,11 +2876,11 @@
   }
 
   // ── Portfolio ─────────────────────────────────────────────────
-  let pfCards    = [];
-  let pfFiltered = [];
-  let pfFmv      = {};
-  let pfFilter   = 'all';
-  let pfLoaded   = false;
+  let pfCards        = [];
+  let pfFiltered     = [];
+  let pfFmv          = {};
+  let pfActiveFilter = 'all';
+  let pfLoaded       = false;
 
   function pfConnect() {
     localStorage.setItem('sorare_return_to_page', 'portfolio');
@@ -2888,8 +2888,8 @@
   }
 
   async function pfInit() {
-    const token = localStorage.getItem('sorare_access_token');
-    if (!token) {
+    const sorareUser = localStorage.getItem('sorare_user');
+    if (!sorareUser) {
       document.getElementById('pf-login').style.display   = 'flex';
       document.getElementById('pf-content').style.display = 'none';
       return;
@@ -2900,56 +2900,103 @@
   }
 
   async function pfLoadCards() {
-    const token = localStorage.getItem('sorare_access_token');
-    const grid  = document.getElementById('pf-grid');
+    const user = JSON.parse(localStorage.getItem('sorare_user') || '{}');
+    const slug = user.slug;
+    if (!slug) return;
+
+    const grid = document.getElementById('pf-grid');
     pfCards = [];
-    let cursor = null;
-    let page   = 0;
 
-    do {
-      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace">
-        Loading cards... ${pfCards.length} loaded</div>`;
+    for (const rarity of ['limited', 'rare', 'super_rare']) {
+      let cursor = null;
+      let page   = 0;
+      do {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace">
+          Loading ${rarity} cards... ${pfCards.length} loaded</div>`;
 
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
-        body: JSON.stringify({ action: 'cards', access_token: token, cursor }),
-      });
+        const res = await fetch('https://api.sorare.com/graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `query ($slug: String!, $after: String, $first: Int!) {
+              user(slug: $slug) {
+                cards(sport: FOOTBALL, rarities: [${rarity}], first: $first, after: $after) {
+                  pageInfo { hasNextPage endCursor }
+                  nodes {
+                    slug
+                    rarityTyped
+                    pictureUrl
+                    anyPlayer { slug displayName }
+                  }
+                }
+              }
+            }`,
+            variables: { slug, first: 50, after: cursor },
+          }),
+        });
 
-      const data = await res.json();
-      if (data.error) { showToast('✗ ' + data.error); break; }
+        const data     = await res.json();
+        const cards    = data?.data?.user?.cards?.nodes ?? [];
+        const pageInfo = data?.data?.user?.cards?.pageInfo ?? {};
+        pfCards.push(...cards);
+        cursor = pageInfo.hasNextPage ? pageInfo.endCursor : null;
+        page++;
+      } while (cursor && page < 60);
+    }
 
-      const nodes    = data.allNfts?.nodes ?? [];
-      const pageInfo = data.allNfts?.pageInfo ?? {};
-      pfCards.push(...nodes);
-      cursor = pageInfo.hasNextPage ? pageInfo.endCursor : null;
-      page++;
+    // Add missing players to DB
+    await pfAddMissing();
 
-    } while (cursor && page < 60);
-
+    // Load FMV from card_prices
     await pfLoadFmv();
+
     pfLoaded = true;
     pfFilter2();
     pfUpdateStats();
   }
 
-  async function pfLoadFmv() {
-    const slugs = [...new Set(pfCards.map(c => c.player?.slug).filter(Boolean))];
-    if (!slugs.length) return;
+  async function pfAddMissing() {
+    const byScarcity = {};
+    for (const c of pfCards) {
+      const rarity = (c.rarityTyped || 'limited').toLowerCase();
+      if (!byScarcity[rarity]) byScarcity[rarity] = [];
+      if (c.anyPlayer?.slug) {
+        byScarcity[rarity].push({
+          player_slug: c.anyPlayer.slug,
+          player_name: c.anyPlayer.displayName,
+          scarcity:    rarity,
+          picture_url: c.pictureUrl || null,
+        });
+      }
+    }
+    for (const [scarcity, players] of Object.entries(byScarcity)) {
+      const unique = [...new Map((players as any[]).map(p => [p.player_slug, p])).values()];
+      await fetch(`${SUPABASE_URL}/functions/v1/add-missing-players`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+        body: JSON.stringify({ players: unique }),
+      });
+    }
+  }
 
+  async function pfLoadFmv() {
+    const slugs = [...new Set(pfCards.map(c => c.anyPlayer?.slug).filter(Boolean))];
+    if (!slugs.length) return;
     for (const rarity of ['limited', 'rare', 'super_rare']) {
-      const batch = slugs.slice(0, 200);
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/card_prices?scarcity=eq.${rarity}&player_slug=in.(${batch.map(s=>`"${s}"`).join(',')})&select=player_slug,fmv,floor_price,team_name`,
-        { headers: authHeaders() }
-      );
-      const rows = await res.json();
-      for (const r of rows) pfFmv[`${r.player_slug}_${rarity}`] = r;
+      for (let i = 0; i < slugs.length; i += 100) {
+        const batch = slugs.slice(i, i + 100);
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/card_prices?scarcity=eq.${rarity}&player_slug=in.(${batch.map(s=>`"${s}"`).join(',')})&select=player_slug,fmv,floor_price,team_name`,
+          { headers: authHeaders() }
+        );
+        const rows = await res.json();
+        for (const r of rows) pfFmv[`${r.player_slug}_${rarity}`] = r;
+      }
     }
   }
 
   function pfSetFilter(f) {
-    pfFilter = f;
+    pfActiveFilter = f;
     ['all','limited','rare','sr'].forEach(k => document.getElementById(`pftab-${k}`)?.classList.remove('active'));
     const map = { all:'all', limited:'limited', rare:'rare', super_rare:'sr' };
     document.getElementById(`pftab-${map[f]||'all'}`)?.classList.add('active');
@@ -2960,10 +3007,10 @@
     const search = (document.getElementById('pf-search')?.value || '').toLowerCase().trim();
     pfFiltered = pfCards.filter(c => {
       const rarity = (c.rarityTyped || '').toLowerCase();
-      if (pfFilter !== 'all' && rarity !== pfFilter) return false;
+      if (pfActiveFilter !== 'all' && rarity !== pfActiveFilter) return false;
       if (search) {
-        const name = (c.player?.displayName || '').toLowerCase();
-        const fmvD = pfFmv[`${c.player?.slug}_${rarity}`];
+        const name = (c.anyPlayer?.displayName || '').toLowerCase();
+        const fmvD = pfFmv[`${c.anyPlayer?.slug}_${rarity}`];
         const team = (fmvD?.team_name || '').toLowerCase();
         if (!name.includes(search) && !team.includes(search)) return false;
       }
@@ -2982,14 +3029,13 @@
     grid.innerHTML = pfFiltered.map(c => {
       const rarity = (c.rarityTyped || 'limited').toLowerCase();
       const rlabel = rarity === 'super_rare' ? 'SR' : rarity === 'rare' ? 'Rare' : 'Ltd';
-      const fmvD   = pfFmv[`${c.player?.slug}_${rarity}`];
+      const fmvD   = pfFmv[`${c.anyPlayer?.slug}_${rarity}`];
       const fmv    = fmvD?.fmv;
-      const img    = c.player?.pictureUrl || '';
-      const name   = c.player?.displayName || c.slug;
+      const name   = c.anyPlayer?.displayName || c.slug;
       const team   = fmvD?.team_name || '';
       return `<div class="pf-card">
         <div class="pf-img-wrap">
-          <img class="pf-img" src="${escHtml(img)}" onerror="this.style.display='none'" alt="">
+          <img class="pf-img" src="${escHtml(c.pictureUrl||'')}" onerror="this.style.display='none'" alt="">
           <span class="pf-rarity ${rarity}">${rlabel}</span>
         </div>
         <div class="pf-info">
@@ -3012,13 +3058,15 @@
     let total = 0;
     for (const c of pfCards) {
       const r = (c.rarityTyped||'limited').toLowerCase();
-      const d = pfFmv[`${c.player?.slug}_${r}`];
+      const d = pfFmv[`${c.anyPlayer?.slug}_${r}`];
       if (d?.fmv) total += d.fmv;
     }
     document.getElementById('pf-value').textContent = total > 0 ? `€${total.toFixed(0)}` : '—';
   }
 
-  // ── Craft Helper ──────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
   let chPoolData   = null;
   let chCardCount  = 10;
   let chLeagues    = [];
