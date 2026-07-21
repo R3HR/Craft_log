@@ -2974,11 +2974,11 @@
       for (let i = 0; i < slugs.length; i += 100) {
         const batch = slugs.slice(i, i + 100);
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/card_prices?scarcity=eq.${rarity}&player_slug=in.(${batch.map(s=>`"${s}"`).join(',')})&select=player_slug,fmv,floor_price,team_name`,
+          `${SUPABASE_URL}/rest/v1/card_prices?scarcity=eq.${rarity}&player_slug=in.(${batch.map(s=>`"${s}"`).join(',')})&select=player_slug,fmv,floor_price,team_name,eligibility`,
           { headers: authHeaders() }
         );
         const rows = await res.json();
-        for (const r of rows) pfFmv[`${r.player_slug}_${rarity}`] = r;
+        for (const r of rows) pfFmv[`${r.player_slug}_${rarity}_${r.eligibility ?? 'in_season'}`] = r;
       }
     }
   }
@@ -2998,7 +2998,7 @@
       if (pfActiveFilter !== 'all' && rarity !== pfActiveFilter) return false;
       if (search) {
         const name = (c.anyPlayer?.displayName || '').toLowerCase();
-        const fmvD = pfFmv[`${c.anyPlayer?.slug}_${rarity}`];
+        const fmvD = pfFmv[`${c.anyPlayer?.slug}_${rarity}_${c.inSeasonEligible === false ? 'classic' : 'in_season'}`];
         const team = (fmvD?.team_name || '').toLowerCase();
         if (!name.includes(search) && !team.includes(search)) return false;
       }
@@ -3017,7 +3017,7 @@
     grid.innerHTML = pfFiltered.map(c => {
       const rarity = (c.rarityTyped || 'limited').toLowerCase();
       const rlabel = rarity === 'super_rare' ? 'SR' : rarity === 'rare' ? 'Rare' : 'Ltd';
-      const fmvD   = pfFmv[`${c.anyPlayer?.slug}_${rarity}`];
+      const fmvD   = pfFmv[`${c.anyPlayer?.slug}_${rarity}_${c.inSeasonEligible === false ? 'classic' : 'in_season'}`];
       const fmv    = fmvD?.fmv;
       const name   = c.anyPlayer?.displayName || c.slug;
       const team   = fmvD?.team_name || '';
@@ -3043,7 +3043,7 @@
     let totalValue = 0, ltdValue = 0, rarValue = 0, srValue = 0;
     for (const c of pfCards) {
       const r = (c.rarityTyped||'limited').toLowerCase();
-      const d = pfFmv[`${c.anyPlayer?.slug}_${r}`];
+      const d = pfFmv[`${c.anyPlayer?.slug}_${r}_${c.inSeasonEligible === false ? 'classic' : 'in_season'}`];
       if (d?.fmv) {
         totalValue += d.fmv;
         if (r === 'limited')    ltdValue += d.fmv;
