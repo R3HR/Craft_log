@@ -189,7 +189,7 @@
       const loginRes = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY },
-        body: JSON.stringify({ action: 'login', sorare_slug: user.slug, sorare_nickname: user.nickname }),
+        body: JSON.stringify({ action: 'login', access_token: data.access_token, sorare_slug: user.slug, sorare_nickname: user.nickname }),
       });
       const loginData = await loginRes.json();
 
