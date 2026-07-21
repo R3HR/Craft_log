@@ -2974,7 +2974,7 @@
       for (let i = 0; i < slugs.length; i += 100) {
         const batch = slugs.slice(i, i + 100);
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/card_prices?scarcity=eq.${rarity}&player_slug=in.(${batch.map(s=>`"${s}"`).join(',')})&select=player_slug,fmv,floor_price,team_name,eligibility`,
+          `${SUPABASE_URL}/rest/v1/card_prices?scarcity=eq.${rarity}&player_slug=in.(${batch.map(s=>`"${s}"`).join(',')})&select=player_slug,fmv,floor_price,team_name,eligibility,sale_1`,
           { headers: authHeaders() }
         );
         const rows = await res.json();
@@ -3029,7 +3029,7 @@
         <div class="pf-info">
           <div class="pf-name">${escHtml(name)}</div>
           <div class="pf-team">${escHtml(team)}</div>
-          ${fmv ? `<div class="pf-fmv">€${fmv.toFixed(2)}</div>` : `<div class="pf-fmv no-data">// no data</div>`}
+          ${fmv ? `<div class="pf-fmv">€${fmv.toFixed(2)}</div>` : (fmvD?.floor_price ?? fmvD?.sale_1) ? `<div class="pf-fmv" style="opacity:.7">~€${(fmvD.floor_price ?? fmvD.sale_1).toFixed(2)}</div>` : `<div class="pf-fmv no-data">// no data</div>`}
         </div>
       </div>`;
     }).join('');
@@ -3044,11 +3044,12 @@
     for (const c of pfCards) {
       const r = (c.rarityTyped||'limited').toLowerCase();
       const d = pfFmv[`${c.anyPlayer?.slug}_${r}_${c.inSeasonEligible === false ? 'classic' : 'in_season'}`];
-      if (d?.fmv) {
-        totalValue += d.fmv;
-        if (r === 'limited')    ltdValue += d.fmv;
-        if (r === 'rare')       rarValue += d.fmv;
-        if (r === 'super_rare') srValue  += d.fmv;
+      const dv = d?.fmv ?? d?.floor_price ?? d?.sale_1;
+      if (dv) {
+        totalValue += dv;
+        if (r === 'limited')    ltdValue += dv;
+        if (r === 'rare')       rarValue += dv;
+        if (r === 'super_rare') srValue  += dv;
       }
     }
 
