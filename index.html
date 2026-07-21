@@ -2919,7 +2919,7 @@
 
         const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
           body: JSON.stringify({ action: 'user_cards', slug, rarity, cursor }),
         });
 
@@ -2961,7 +2961,7 @@
       const unique = [...new Map(players.map(p => [p.player_slug, p])).values()];
       await fetch(`${SUPABASE_URL}/functions/v1/add-missing-players`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
         body: JSON.stringify({ players: unique }),
       });
     }
@@ -3546,7 +3546,7 @@
       // Exchange Sorare code for token
       const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
         body: JSON.stringify({ action: 'exchange', code, redirect_uri: SORARE_CALLBACK }),
       });
 
