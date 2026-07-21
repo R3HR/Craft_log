@@ -10,8 +10,8 @@
   window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
   plausible.init()
 </script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #0a0a0f;
@@ -2098,7 +2098,7 @@
 <script>
   // ── Supabase config ───────────────────────────────────────────────────────
   const SUPABASE_URL = 'https://jxhdlcpdupmkpsoytzes.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4aGRsY3BkdXBta3Bzb3l0emVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjQwMjQsImV4cCI6MjA4OTM0MDAyNH0.bvOQf7cF05GWafdb-vR7V9bphLjvgqTuY2BTLLGPnQM';
+  const SUPABASE_KEY = 'sb_publishable_cplVdUDlMw1S5IcjlwxPTA_Mx8G7016';
 
   let accessToken = null;
   let currentUser = null;
@@ -2179,11 +2179,14 @@
     currentUser = data.user;
     const remember = document.getElementById('remember-me')?.checked;
     const storage = remember ? localStorage : sessionStorage;
-    storage.setItem('sb_token', accessToken);
-    storage.setItem('sb_user', JSON.stringify(currentUser));
+    storage.setItem('sb_token',   accessToken);
+    storage.setItem('sb_user',    JSON.stringify(currentUser));
+    if (data.refresh_token) storage.setItem('sb_refresh', data.refresh_token);
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('main-app').style.display = 'block';
-    const sorareU = localStorage.getItem('sorare_user'); const displayName = sorareU ? JSON.parse(sorareU).nickname || currentUser.email.split('@')[0] : currentUser.email.split('@sorare')[0]; document.getElementById('user-email-display').textContent = displayName;
+    const sorareU = localStorage.getItem('sorare_user');
+    const displayName = sorareU ? JSON.parse(sorareU).nickname || currentUser.email.split('@')[0] : currentUser.email.split('@sorare')[0];
+    document.getElementById('user-email-display').textContent = displayName;
     loadAndRender();
   }
 
@@ -2191,10 +2194,10 @@
     accessToken = null;
     currentUser = null;
     crafts = [];
-    localStorage.removeItem('sb_token');
-    localStorage.removeItem('sb_user');
-    sessionStorage.removeItem('sb_token');
-    sessionStorage.removeItem('sb_user');
+    ['sb_token', 'sb_user', 'sb_refresh', 'sorare_user', 'sorare_access_token', 'sorare_refresh_token'].forEach(k => {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    });
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('main-app').style.display = 'none';
     render();
@@ -3036,17 +3039,28 @@
     const ltd = pfCards.filter(c => (c.rarityTyped||'').toLowerCase() === 'limited');
     const rar = pfCards.filter(c => (c.rarityTyped||'').toLowerCase() === 'rare');
     const sr  = pfCards.filter(c => (c.rarityTyped||'').toLowerCase() === 'super_rare');
-    document.getElementById('pf-total').textContent = pfCards.length.toLocaleString();
-    document.getElementById('pf-ltd').textContent   = ltd.length;
-    document.getElementById('pf-rar').textContent   = rar.length;
-    document.getElementById('pf-sr').textContent    = sr.length;
-    let total = 0;
+
+    let totalValue = 0, ltdValue = 0, rarValue = 0, srValue = 0;
     for (const c of pfCards) {
       const r = (c.rarityTyped||'limited').toLowerCase();
       const d = pfFmv[`${c.anyPlayer?.slug}_${r}`];
-      if (d?.fmv) total += d.fmv;
+      if (d?.fmv) {
+        totalValue += d.fmv;
+        if (r === 'limited')    ltdValue += d.fmv;
+        if (r === 'rare')       rarValue += d.fmv;
+        if (r === 'super_rare') srValue  += d.fmv;
+      }
     }
-    document.getElementById('pf-value').textContent = total > 0 ? `€${total.toFixed(0)}` : '—';
+
+    document.getElementById('pf-total').textContent = pfCards.length.toLocaleString();
+    document.getElementById('pf-value').textContent = totalValue > 0 ? `€${totalValue.toFixed(0)}` : '—';
+
+    document.getElementById('pf-ltd').innerHTML =
+      `${ltd.length} <span style="color:var(--muted);font-size:0.75em">/ €${ltdValue.toFixed(0)}</span>`;
+    document.getElementById('pf-rar').innerHTML =
+      `${rar.length} <span style="color:var(--muted);font-size:0.75em">/ €${rarValue.toFixed(0)}</span>`;
+    document.getElementById('pf-sr').innerHTML =
+      `${sr.length} <span style="color:var(--muted);font-size:0.75em">/ €${srValue.toFixed(0)}</span>`;
   }
 
   function escHtml(s) {
@@ -3643,17 +3657,55 @@
       }
     }
 
-    const savedToken = localStorage.getItem('sb_token') || sessionStorage.getItem('sb_token');
-    const savedUser  = localStorage.getItem('sb_user')  || sessionStorage.getItem('sb_user');
+    const savedToken   = localStorage.getItem('sb_token')   || sessionStorage.getItem('sb_token');
+    const savedUser    = localStorage.getItem('sb_user')    || sessionStorage.getItem('sb_user');
+    const savedRefresh = localStorage.getItem('sb_refresh') || sessionStorage.getItem('sb_refresh');
+
     if (savedToken && savedUser) {
-      accessToken = savedToken;
-      currentUser = JSON.parse(savedUser);
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('main-app').style.display    = 'block';
-      const sorareU = localStorage.getItem('sorare_user'); const displayName = sorareU ? JSON.parse(sorareU).nickname || currentUser.email.split('@')[0] : currentUser.email.split('@sorare')[0]; document.getElementById('user-email-display').textContent = displayName;
-      loadAndRender();
+      // Verify token is still valid
+      const verifyRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + savedToken }
+      });
+
+      if (verifyRes.ok) {
+        // Token still valid
+        accessToken = savedToken;
+        currentUser = JSON.parse(savedUser);
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('main-app').style.display    = 'block';
+        const sorareU = localStorage.getItem('sorare_user');
+        const displayName = sorareU ? JSON.parse(sorareU).nickname || currentUser.email.split('@')[0] : currentUser.email.split('@sorare')[0];
+        document.getElementById('user-email-display').textContent = displayName;
+        loadAndRender();
+      } else if (savedRefresh) {
+        // Try refresh token
+        const refreshRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+          body: JSON.stringify({ refresh_token: savedRefresh }),
+        });
+        const refreshData = await refreshRes.json();
+
+        if (refreshData.access_token) {
+          // Save new tokens
+          localStorage.setItem('sb_token',   refreshData.access_token);
+          localStorage.setItem('sb_refresh',  refreshData.refresh_token);
+          localStorage.setItem('sb_user',     JSON.stringify(refreshData.user));
+          accessToken = refreshData.access_token;
+          currentUser = refreshData.user;
+          document.getElementById('auth-screen').style.display = 'none';
+          document.getElementById('main-app').style.display    = 'block';
+          const sorareU = localStorage.getItem('sorare_user');
+          const displayName = sorareU ? JSON.parse(sorareU).nickname || currentUser.email.split('@')[0] : currentUser.email.split('@sorare')[0];
+          document.getElementById('user-email-display').textContent = displayName;
+          loadAndRender();
+        }
+      }
     }
   })();
 </script>
+<div style="text-align:center;padding:24px 16px;font-size:11px;color:#666;font-family:'IBM Plex Mono',monospace">
+  Not affiliated with Sorare · Alle Werte sind unverbindliche Schätzungen, keine Anlageberatung · <a href="legal.html" style="color:inherit">Impressum &amp; Datenschutz</a>
+</div>
 </body>
 </html>
