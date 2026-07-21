@@ -3618,7 +3618,18 @@
     const sorareToken = localStorage.getItem('sorare_access_token');
     if (sorareToken && sorareUser && !accessToken) {
       try {
-        const user     = JSON.parse(sorareUser);
+        const user = JSON.parse(sorareUser);
+        // Seit SEC-005 liefert der Callback eine fertige Session (sb_token/sb_user) —
+        // kein Passwort-Login im Client mehr, direkt übernehmen:
+        const cbToken   = localStorage.getItem('sb_token');
+        const cbRefresh = localStorage.getItem('sb_refresh');
+        const cbUser    = localStorage.getItem('sb_user');
+        if (cbToken && cbUser) {
+          onLoggedIn({ access_token: cbToken, refresh_token: cbRefresh, user: JSON.parse(cbUser) });
+          showToast(`✓ Willkommen, ${user?.nickname || user?.slug || 'Manager'}!`);
+          if (pageParam) setTimeout(() => setPage(pageParam), 100);
+          return;
+        }
         const slug     = user?.slug || user?.nickname || 'user';
         const email    = `${slug}@sorare.craftlog.pro`;
         const password = `sorare_${slug}_craftlog`;
