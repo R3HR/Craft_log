@@ -1104,6 +1104,28 @@
     box-shadow: 0 0 20px rgba(200,255,74,0.15);
   }
 
+  .btn-import-craft {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed var(--accent2);
+    border-radius: 8px;
+    color: var(--accent2);
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 9px 12px;
+    cursor: pointer;
+    margin-bottom: 14px;
+    transition: all 0.2s;
+  }
+  .btn-import-craft:hover:not(:disabled) {
+    background: rgba(74,240,200,0.08);
+    border-style: solid;
+  }
+  .btn-import-craft:disabled { opacity: 0.5; cursor: default; }
+
   .auth-divider {
     display: flex;
     align-items: center;
@@ -1769,6 +1791,11 @@
     <div class="form-card">
       <div class="card-title">// New Craft</div>
 
+      <button class="btn-import-craft" id="btn-import-craft" onclick="importCurrentCraft()" title="Liest deinen laufenden Craft aus Sorare und füllt das Formular">
+        ⬇ Aktuellen Craft importieren
+      </button>
+      <div id="import-hint" style="display:none;font-size:10px;color:var(--muted);margin:-8px 0 12px;line-height:1.5"></div>
+
       <div class="form-group">
         <label>Draw Type</label>
         <div class="draw-toggle">
@@ -1804,11 +1831,11 @@
             </div>
           </div>
           <div class="api-result-row">
-            <span class="api-result-label">Letzter Verkauf</span>
+            <span class="api-result-label" id="api-label-1">Floor</span>
             <span class="api-result-val" id="api-latest">—</span>
           </div>
           <div class="api-result-row">
-            <span class="api-result-label">Avg letzte 3</span>
+            <span class="api-result-label" id="api-label-2">Supply</span>
             <span class="api-result-val" id="api-avg">—</span>
           </div>
           <div class="api-result-row" style="border-top:1px solid var(--border);padding-top:6px;margin-top:2px">
@@ -2527,7 +2554,8 @@
 
     acIndex = -1;
     dropdown.innerHTML = matches.map((p, i) => {
-      const price = p.floorPrice?.avgData?.eur ? `€${parseFloat(p.floorPrice.avgData.eur).toFixed(2)}` : '';
+      const pv = p.fmv ?? (p.floorPrice?.avgData?.eur ? parseFloat(p.floorPrice.avgData.eur) : null);
+      const price = pv != null ? `€${pv.toFixed(2)}` : '';
       return `<div class="ac-item" data-idx="${i}" onmousedown="acSelect(${i})">
         <img class="ac-img" src="${p.pictureUrl || ''}" onerror="this.style.display='none'">
         <div>
@@ -2548,22 +2576,30 @@
     if (!matches || !matches[idx]) return;
 
     const p = matches[idx];
-    document.getElementById('inp-name').value = p.playerName;
     dropdown.classList.remove('open');
+    fillPlayerFromPool(p);
+  }
 
-    // Auto-fill price data
+  // Übernimmt einen Pool-Spieler ins Formular (Name + Preisanzeige).
+  // Genutzt von der Autocomplete-Auswahl UND vom Craft-Import.
+  function fillPlayerFromPool(p) {
+    document.getElementById('inp-name').value = p.playerName;
+
+    // Market Value ist UNSER FMV (lib/fmv.mjs, via card_prices).
+    // Keine eigene Mischformel mehr: der FMV ist die eine kanonische Zahl.
     const fp = p.floorPrice;
-    const floorPrice  = fp?.floorData?.eur  ? parseFloat(fp.floorData.eur)  : null;
-    const avgSales    = fp?.avgData?.eur    ? parseFloat(fp.avgData.eur)    : null;
-    let marketValue = null;
-    if (floorPrice && avgSales) marketValue = (floorPrice * 0.65) + (avgSales * 0.35);
-    else marketValue = floorPrice ?? avgSales;
+    const floorPrice = p.floor ?? (fp?.floorData?.eur ? parseFloat(fp.floorData.eur) : null);
+    const fmv        = p.fmv   ?? (fp?.avgData?.eur   ? parseFloat(fp.avgData.eur)   : null);
+    // Fallback für alte Cache-Daten ohne fmv-Feld
+    const marketValue = fmv ?? floorPrice;
 
     apiMarketValue = marketValue;
 
-    document.getElementById('api-latest').textContent = floorPrice ? `€${floorPrice.toFixed(2)}` : '—';
-    document.getElementById('api-avg').textContent    = avgSales   ? `€${avgSales.toFixed(2)}`   : '—';
-    document.getElementById('api-mv').textContent     = marketValue ? `€${marketValue.toFixed(2)}` : '—';
+    document.getElementById('api-label-1').textContent = 'Floor';
+    document.getElementById('api-label-2').textContent = 'Supply';
+    document.getElementById('api-latest').textContent = floorPrice != null ? `€${floorPrice.toFixed(2)}` : '—';
+    document.getElementById('api-avg').textContent    = p.availableSupply != null ? String(p.availableSupply) : '—';
+    document.getElementById('api-mv').textContent     = marketValue != null ? `€${marketValue.toFixed(2)}` : '—';
 
     const imgEl = document.getElementById('api-player-img');
     if (imgEl && p.pictureUrl) { imgEl.src = p.pictureUrl; imgEl.style.display = 'block'; }
@@ -2576,6 +2612,88 @@
     if (infoEl) infoEl.textContent = p.teamName || '';
 
     document.getElementById('api-result-box').style.display = 'block';
+  }
+
+  // ── Import: laufenden Craft aus Sorare übernehmen ─────────────────────────
+  // Sorare erlaubt keine direkten Browser-Calls (CORS) → über sorare-oauth
+  // (action: 'card_pull'), das den OAuth-Token serverseitig nutzt.
+  async function importCurrentCraft() {
+    const token = localStorage.getItem('sorare_access_token') || sessionStorage.getItem('sorare_access_token');
+    const btn   = document.getElementById('btn-import-craft');
+    const hint  = document.getElementById('import-hint');
+
+    const setHint = (txt, ok) => {
+      hint.textContent = txt;
+      hint.style.color = ok ? 'var(--accent2)' : 'var(--muted)';
+      hint.style.display = txt ? 'block' : 'none';
+    };
+
+    if (!token) {
+      setHint('Dafür musst du oben mit Sorare angemeldet sein.', false);
+      return;
+    }
+
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⟳ Lade Craft…';
+    setHint('', false);
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+        body: JSON.stringify({ action: 'card_pull', access_token: token }),
+      });
+      const pull = await res.json();
+
+      if (!pull || pull.error || !pull.id) {
+        setHint('Kein laufender Craft gefunden. Starte den Craft in Sorare, dann hier importieren.', false);
+        return;
+      }
+
+      // Scarcity übernehmen (lädt bei Wechsel den passenden Pool neu)
+      if (pull.rarity && SCARCITIES.includes(pull.rarity) && pull.rarity !== selectedScarcity) {
+        setScarcity(pull.rarity);
+      }
+
+      // Gezogene Karte: bevorzugt die bereits gepickte, sonst die erste aufgedeckte
+      const cards  = pull.activePulledCards || [];
+      const picked = cards.find(c => c.picked && c.revealedCard)
+                  || cards.find(c => c.revealedCard)
+                  || null;
+      const slug = picked?.revealedCard?.anyPlayer?.slug || null;
+      const name = picked?.revealedCard?.anyPlayer?.displayName || null;
+
+      const essence = pull.chest?.cardShardsCount ?? null;
+      const tier    = picked?.quality ? picked.quality.replace('TIER_', 'T') : null;
+      const infoBits = [
+        pull.rarity ? pull.rarity.replace('_', ' ') : null,
+        essence != null ? `${essence.toLocaleString('de-DE')} Essence` : null,
+        tier ? `Tier ${tier}` : null,
+      ].filter(Boolean);
+
+      if (!slug && !name) {
+        setHint(`Craft gefunden (${infoBits.join(' · ')}), aber noch keine Karte aufgedeckt. Nach dem Reveal erneut importieren.`, false);
+        return;
+      }
+
+      // Spieler im Pool suchen → füllt Name + FMV/Floor/Supply
+      await acEnsurePool();
+      const p = acPool?.players?.find(x => x.playerSlug === slug);
+      if (p) {
+        fillPlayerFromPool(p);
+        setHint(`Importiert: ${infoBits.join(' · ')}`, true);
+      } else {
+        // Spieler nicht im Pool-Cache — wenigstens den Namen setzen
+        document.getElementById('inp-name').value = name || slug;
+        setHint(`Importiert: ${infoBits.join(' · ')} — Preis konnte nicht automatisch geladen werden.`, false);
+      }
+    } catch (e) {
+      setHint('Import fehlgeschlagen: ' + e.message, false);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
   }
 
   function acKeydown(e) {
@@ -2631,6 +2749,10 @@
 
       if (data.playerName) document.getElementById('inp-name').value = data.playerName;
 
+      // Dieser Pfad (sorare-proxy) liefert noch eigene Sales-Werte → eigene Labels setzen,
+      // da acSelect() sie auf Floor/Supply umstellt.
+      document.getElementById('api-label-1').textContent = 'Floor';
+      document.getElementById('api-label-2').textContent = 'Ø Verkäufe';
       document.getElementById('api-latest').textContent =
         data.floorPrice != null ? `€${data.floorPrice.toFixed(2)}` : '—';
       document.getElementById('api-avg').textContent =
@@ -3086,6 +3208,14 @@
   const TIER_PROBS_SPECIAL  = { tier_0: 0.05, tier_1: 0.10, tier_2: 0.20, tier_3: 0.25, tier_4: 0.20, tier_5: 0.20 };
   const TIER_LABELS = { tier_0: 'STAR', tier_1: 'T1', tier_2: 'T2', tier_3: 'T3', tier_4: 'T4', tier_5: 'T5' };
 
+  // Kanonischer Kartenwert = UNSER FMV (lib/fmv.mjs → card_prices → update-pool).
+  // Legacy-Pfad (floorPrice.avgData) nur als Fallback für alten pool_cache-Inhalt.
+  function poolPrice(p) {
+    if (p?.fmv != null) return p.fmv;
+    const legacy = p?.floorPrice?.avgData?.eur;
+    return legacy ? parseFloat(legacy) : null;
+  }
+
   async function chLoadPool() {
     const rarity = document.getElementById('ch-rarity').value;
     const rarityFile = { limited: 'Limited', rare: 'Rare', super_rare: 'SuperRare' }[rarity];
@@ -3263,19 +3393,19 @@
     const tierCounts = {};
     for (const p of allPlayers) tierCounts[p.tier] = (tierCounts[p.tier] || 0) + 1;
 
-    // Price stats
+    // Price stats — basieren auf UNSEREM FMV (poolPrice), Legacy nur als Fallback
     const prices = allPlayers
-      .map(p => p.floorPrice?.avgData?.eur ? parseFloat(p.floorPrice.avgData.eur) : null)
+      .map(p => poolPrice(p))
       .filter(v => v !== null && v > 0);
 
     const highest = prices.length ? Math.max(...prices) : 0;
     const lowest  = prices.length ? Math.min(...prices) : 0;
     const average = prices.length ? prices.reduce((a,b) => a+b,0) / prices.length : 0;
 
-    // Top 3 by floor price
+    // Top 3 nach FMV
     const sorted = [...allPlayers]
-      .filter(p => p.floorPrice?.avgData?.eur)
-      .sort((a,b) => parseFloat(b.floorPrice.avgData.eur) - parseFloat(a.floorPrice.avgData.eur))
+      .filter(p => poolPrice(p) != null)
+      .sort((a,b) => poolPrice(b) - poolPrice(a))
       .slice(0, 3);
 
     // Tier badges
@@ -3287,7 +3417,7 @@
 
     // Top 3 HTML
     const top3html = sorted.map(p => {
-      const price = parseFloat(p.floorPrice.avgData.eur);
+      const price = poolPrice(p);
       const stars = price > 100 ? '★★★★★' : price > 50 ? '★★★★' : price > 20 ? '★★★' : price > 5 ? '★★' : '★';
       return `
         <div class="ch-player-row">
