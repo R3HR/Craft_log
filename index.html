@@ -1791,8 +1791,8 @@
     <div class="form-card">
       <div class="card-title">// New Craft</div>
 
-      <button class="btn-import-craft" id="btn-import-craft" onclick="importCurrentCraft()" title="Liest deinen laufenden Craft aus Sorare und füllt das Formular">
-        ⬇ Aktuellen Craft importieren
+      <button class="btn-import-craft" id="btn-import-craft" onclick="importCurrentCraft()" title="Liest deinen zuletzt gecrafteten Spieler aus Sorare und bewertet ihn mit dem FMV vom Craft-Tag">
+        ⬇ Letzten Craft importieren
       </button>
       <div id="import-hint" style="display:none;font-size:10px;color:var(--muted);margin:-8px 0 12px;line-height:1.5"></div>
 
@@ -2481,8 +2481,32 @@
   let acPool = null;
   let acIndex = -1;
 
+  // Supabase-Session erneuern. Der Token läuft nach 1 Std. ab; bisher wurde er
+  // NUR beim Seitenstart erneuert → mitten in der Sitzung lieferte get-pool 401
+  // und der Pool blieb (still) leer. Wird jetzt bei 401 aufgerufen.
+  async function refreshSession() {
+    const savedRefresh = localStorage.getItem('sb_refresh') || sessionStorage.getItem('sb_refresh');
+    if (!savedRefresh) return false;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+        body: JSON.stringify({ refresh_token: savedRefresh }),
+      });
+      const data = await res.json();
+      if (!data.access_token) return false;
+      accessToken = data.access_token;
+      const store = localStorage.getItem('sb_refresh') ? localStorage : sessionStorage;
+      store.setItem('sb_token', data.access_token);
+      if (data.refresh_token) store.setItem('sb_refresh', data.refresh_token);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Lädt den Pool. Gibt true/false zurück, damit Aufrufer dem Nutzer
+  // eine echte Meldung zeigen können (vorher: stilles catch → "Poolfehler" ohne Info).
   async function acEnsurePool() {
-    if (acPool) return;
+    if (acPool) return true;
 
     // Check sessionStorage cache first
     const cacheKey = `craftlog_pool_${selectedScarcity}`;
@@ -2490,25 +2514,36 @@
     if (cached) {
       try {
         acPool = JSON.parse(cached);
-        return;
+        return true;
       } catch(e) {}
     }
 
+    const fetchPool = () => fetch(`${SUPABASE_URL}/functions/v1/get-pool`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+      body: JSON.stringify({ rarity: selectedScarcity })
+    });
+
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-pool`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
-        body: JSON.stringify({ rarity: selectedScarcity })
-      });
-      if (!res.ok) return;
+      let res = await fetchPool();
+      if (res.status === 401 && await refreshSession()) res = await fetchPool();  // Token war abgelaufen
+      if (!res.ok) {
+        showToast(res.status === 401
+          ? '✗ Sitzung abgelaufen — bitte neu anmelden'
+          : `✗ Spielerpool nicht geladen (Fehler ${res.status})`);
+        return false;
+      }
       const data = await res.json();
       acPool = { rarity: selectedScarcity, players: [] };
       for (const tier of Object.values(data.pools)) {
         for (const p of tier.players) acPool.players.push(p);
       }
-      // Cache in sessionStorage
       try { sessionStorage.setItem(cacheKey, JSON.stringify(acPool)); } catch(e) {}
-    } catch(e) {}
+      return true;
+    } catch(e) {
+      showToast('✗ Spielerpool nicht erreichbar: ' + e.message);
+      return false;
+    }
   }
 
   // Reset pool cache when scarcity changes — handled in setScarcity below
@@ -2614,9 +2649,35 @@
     document.getElementById('api-result-box').style.display = 'block';
   }
 
-  // ── Import: laufenden Craft aus Sorare übernehmen ─────────────────────────
-  // Sorare erlaubt keine direkten Browser-Calls (CORS) → über sorare-oauth
-  // (action: 'card_pull'), das den OAuth-Token serverseitig nutzt.
+  // Holt den FMV eines Spielers zum angegebenen Datum aus price_history (RPC).
+  // Zweck: Ein Craft wird mit dem Wert VON DAMALS bewertet, nicht mit dem heutigen.
+  // Gibt {price, date} des nächstgelegenen Tages ≤ Craft-Datum zurück, sonst null.
+  async function fmvAtDate(playerSlug, scarcity, isoDate) {
+    const craftDay = isoDate.slice(0, 10);
+    const daysAgo  = Math.ceil((Date.now() - new Date(craftDay).getTime()) / 86400000) + 3;
+    for (const elig of ['in_season', 'classic']) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/player_history`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+          body: JSON.stringify({ p_slug: playerSlug, p_scarcity: scarcity, p_elig: elig, p_days: Math.min(daysAgo, 3650) }),
+        });
+        if (!res.ok) continue;
+        const rows = await res.json();
+        if (!Array.isArray(rows) || !rows.length) continue;
+        // letzter Eintrag am oder vor dem Craft-Tag
+        const before = rows.filter(r => r.recorded_at <= craftDay);
+        const hit = before.length ? before[before.length - 1] : null;
+        if (hit) return { price: hit.price, date: hit.recorded_at };
+      } catch (e) { /* nächste Eligibility probieren */ }
+    }
+    return null;
+  }
+
+  // ── Import: zuletzt gecrafteten Spieler aus Sorare übernehmen ─────────────
+  // WICHTIG (gelernt 08.): NICHT über den laufenden Card Pull — während des Crafts
+  // ist noch keine Karte gewählt, und direkt nach der Wahl ist der Pull weg.
+  // Stattdessen die fertige Karte aus der Sammlung (transferType SHARDS).
   async function importCurrentCraft() {
     const token = localStorage.getItem('sorare_access_token') || sessionStorage.getItem('sorare_access_token');
     const btn   = document.getElementById('btn-import-craft');
@@ -2642,52 +2703,56 @@
       const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
-        body: JSON.stringify({ action: 'card_pull', access_token: token }),
+        body: JSON.stringify({ action: 'recent_crafts', access_token: token }),
       });
-      const pull = await res.json();
+      const data = await res.json();
 
-      if (!pull || pull.error || !pull.id) {
-        setHint('Kein laufender Craft gefunden. Starte den Craft in Sorare, dann hier importieren.', false);
+      if (data?.error) { setHint('Sorare-Abfrage fehlgeschlagen: ' + data.error, false); return; }
+
+      // Achtung: NICHT `crafts` nennen — das ist der State der eigenen geloggten Crafts.
+      const sorareCrafts = data?.crafts || [];
+      if (!sorareCrafts.length) {
+        setHint('Keine gecrafteten Karten gefunden. Nach Abschluss eines Crafts erscheint die Karte hier automatisch.', false);
         return;
       }
+
+      // Bereits geloggte Crafts überspringen (gleicher Spieler am gleichen Tag)
+      const alreadyLogged = (c) => crafts.some(x =>
+        (x.name || '').trim().toLowerCase() === (c.playerName || '').trim().toLowerCase() &&
+        x.date === (c.craftedAt || '').slice(0, 10));
+      const craft = sorareCrafts.find(c => !alreadyLogged(c)) || sorareCrafts[0];
+
+      const craftDay = (craft.craftedAt || '').slice(0, 10);
 
       // Scarcity übernehmen (lädt bei Wechsel den passenden Pool neu)
-      if (pull.rarity && SCARCITIES.includes(pull.rarity) && pull.rarity !== selectedScarcity) {
-        setScarcity(pull.rarity);
+      if (craft.scarcity && SCARCITIES.includes(craft.scarcity) && craft.scarcity !== selectedScarcity) {
+        setScarcity(craft.scarcity);
       }
 
-      // Gezogene Karte: bevorzugt die bereits gepickte, sonst die erste aufgedeckte
-      const cards  = pull.activePulledCards || [];
-      const picked = cards.find(c => c.picked && c.revealedCard)
-                  || cards.find(c => c.revealedCard)
-                  || null;
-      const slug = picked?.revealedCard?.anyPlayer?.slug || null;
-      const name = picked?.revealedCard?.anyPlayer?.displayName || null;
+      const poolOk = await acEnsurePool();
+      const p = poolOk ? acPool?.players?.find(x => x.playerSlug === craft.playerSlug) : null;
 
-      const essence = pull.chest?.cardShardsCount ?? null;
-      const tier    = picked?.quality ? picked.quality.replace('TIER_', 'T') : null;
-      const infoBits = [
-        pull.rarity ? pull.rarity.replace('_', ' ') : null,
-        essence != null ? `${essence.toLocaleString('de-DE')} Essence` : null,
-        tier ? `Tier ${tier}` : null,
-      ].filter(Boolean);
-
-      if (!slug && !name) {
-        setHint(`Craft gefunden (${infoBits.join(' · ')}), aber noch keine Karte aufgedeckt. Nach dem Reveal erneut importieren.`, false);
-        return;
-      }
-
-      // Spieler im Pool suchen → füllt Name + FMV/Floor/Supply
-      await acEnsurePool();
-      const p = acPool?.players?.find(x => x.playerSlug === slug);
       if (p) {
         fillPlayerFromPool(p);
-        setHint(`Importiert: ${infoBits.join(' · ')}`, true);
       } else {
-        // Spieler nicht im Pool-Cache — wenigstens den Namen setzen
-        document.getElementById('inp-name').value = name || slug;
-        setHint(`Importiert: ${infoBits.join(' · ')} — Preis konnte nicht automatisch geladen werden.`, false);
+        document.getElementById('inp-name').value = craft.playerName || craft.playerSlug;
       }
+
+      // Wert VOM CRAFT-TAG statt heutigem FMV
+      const hist = await fmvAtDate(craft.playerSlug, craft.scarcity, craft.craftedAt);
+      const bits = [craft.scarcity.replace('_', ' '), craftDay];
+
+      if (hist) {
+        apiMarketValue = hist.price;
+        document.getElementById('api-mv').textContent = `€${hist.price.toFixed(2)}`;
+        document.getElementById('api-result-box').style.display = 'block';
+        bits.push(`FMV am Craft-Tag: €${hist.price.toFixed(2)}`);
+        if (hist.date !== craftDay) bits.push(`(Kurs vom ${hist.date})`);
+      } else {
+        bits.push('kein historischer FMV verfügbar — heutiger Wert eingetragen');
+      }
+
+      setHint(`${craft.playerName || craft.playerSlug} · ${bits.join(' · ')}`, !!hist);
     } catch (e) {
       setHint('Import fehlgeschlagen: ' + e.message, false);
     } finally {
