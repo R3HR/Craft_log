@@ -2053,6 +2053,12 @@
           Generate 1–10
         </button>
       </div>
+      <div class="ch-settings-row" style="margin-top:10px">
+        <button class="btn-import-craft" id="btn-ch-import" onclick="chImportPull()" style="margin-bottom:0" title="Liest deinen laufenden Craft aus Sorare: Rarity, Kartenanzahl, Tier sowie Liga/Nation je Karte">
+          ⬇ Laufenden Craft laden
+        </button>
+      </div>
+      <div id="ch-import-hint" style="display:none;font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5"></div>
     </div>
 
     <div class="ch-cards-grid" id="ch-cards-grid">
@@ -3354,7 +3360,10 @@
   }
 
   function chUpdateSettings() {
-    chPoolData = null; // force reload on rarity change
+    chPoolData = null;   // force reload on rarity change
+    chPullCards = null;  // manuelle Änderung → importierte Vorbelegung verwerfen
+    const hint = document.getElementById('ch-import-hint');
+    if (hint) hint.style.display = 'none';
   }
 
   function chGenerate() {
@@ -3401,20 +3410,45 @@
     placeholders.forEach(p => observer.observe(p));
   }
 
+  // Aus einem importierten Pull (chImportPull) vorbelegte Karten-Eigenschaften.
+  // Index 0 = Card 1. null = nichts importiert.
+  let chPullCards = null;
+
+  function chResolveLeague(comp) {
+    if (!comp) return '';
+    if (chLeagues.some(([slug]) => slug === comp.slug)) return comp.slug;
+    const byName = chLeagues.find(([, name]) =>
+      (name || '').toLowerCase() === (comp.displayName || '').toLowerCase());
+    return byName ? byName[0] : '';
+  }
+  function chResolveNation(country) {
+    if (!country) return '';
+    return chNations.some(([code]) => code === country.code) ? country.code : '';
+  }
+
   function chBuildCard(num, probs, quality) {
     const card = document.createElement('div');
     card.className = 'ch-card';
 
-    // Filter selects
-    const leagueOpts = ['<option value="">All Leagues</option>',
-      ...chLeagues.map(([slug, name]) => `<option value="${slug}">${name}</option>`)
+    // Aus dem importierten Craft vorbelegen (falls vorhanden)
+    const pc      = chPullCards ? chPullCards[num - 1] : null;
+    const preLeag = pc ? chResolveLeague(pc.competition) : '';
+    const preNat  = pc ? chResolveNation(pc.country) : '';
+
+    const sel = (v, cur) => v === cur ? ' selected' : '';
+    const leagueOpts = [`<option value=""${sel('', preLeag)}>All Leagues</option>`,
+      ...chLeagues.map(([slug, name]) => `<option value="${slug}"${sel(slug, preLeag)}>${name}</option>`)
     ].join('');
-    const nationOpts = ['<option value="">All Nationalities</option>',
-      ...chNations.map(([code, name]) => `<option value="${code}">${name}</option>`)
+    const nationOpts = [`<option value=""${sel('', preNat)}>All Nationalities</option>`,
+      ...chNations.map(([code, name]) => `<option value="${code}"${sel(code, preNat)}>${name}</option>`)
     ].join('');
 
+    const tierBadge = pc?.quality
+      ? `<span class="ch-tier-badge" style="margin-left:6px">${pc.quality.replace('TIER_', 'T')}</span>` : '';
+    const pickedBadge = pc?.picked ? '<span class="ch-tier-badge" style="margin-left:6px">gewählt</span>' : '';
+
     card.innerHTML = `
-      <div class="ch-card-title">Card ${num}</div>
+      <div class="ch-card-title">Card ${num}${tierBadge}${pickedBadge}</div>
       <div class="ch-filter-row">
         <select class="ch-select" style="font-size:11px" onchange="chUpdateCard(this)" data-card="${num}" data-type="league">
           ${leagueOpts}
@@ -3426,9 +3460,71 @@
       <div id="ch-card-body-${num}"></div>
     `;
 
-    // Render initial pool stats
-    setTimeout(() => chRenderCardBody(num, '', '', probs), 0);
+    // Render initial pool stats (mit den importierten Filtern, falls gesetzt)
+    setTimeout(() => chRenderCardBody(num, preLeag, preNat, probs), 0);
     return card;
+  }
+
+  // ── Craft Helper: laufenden Craft aus Sorare laden ────────────────────────
+  // Nutzt cardPull — der existiert GENAU solange der Craft offen ist, also
+  // genau dann, wenn man den Helper benutzt. (Für fertige Crafts: recent_crafts.)
+  async function chImportPull() {
+    const token = localStorage.getItem('sorare_access_token') || sessionStorage.getItem('sorare_access_token');
+    const btn   = document.getElementById('btn-ch-import');
+    const hint  = document.getElementById('ch-import-hint');
+    const setHint = (txt, ok) => {
+      hint.textContent = txt;
+      hint.style.color = ok ? 'var(--accent2)' : 'var(--muted)';
+      hint.style.display = txt ? 'block' : 'none';
+    };
+
+    if (!token) { setHint('Dafür musst du mit Sorare angemeldet sein.', false); return; }
+
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = '⟳ Lade Craft…'; setHint('', false);
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/sorare-oauth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+        body: JSON.stringify({ action: 'card_pull', access_token: token }),
+      });
+      const data = await res.json();
+      if (data?.error) { setHint('Sorare-Abfrage fehlgeschlagen: ' + data.error, false); return; }
+
+      const pull = data?.pull;
+      if (!pull) {
+        setHint('Kein laufender Craft. Starte in Sorare einen Craft — solange er offen ist, kannst du ihn hier laden.', false);
+        return;
+      }
+
+      const cards = pull.activePulledCards || [];
+      chPullCards = cards;
+
+      // Rarity + Kartenanzahl + bestes Tier übernehmen
+      if (pull.rarity && SCARCITIES.includes(pull.rarity)) {
+        document.getElementById('ch-rarity').value = pull.rarity;
+        chPoolData = null;  // Pool muss zur neuen Rarity neu geladen werden
+      }
+      document.getElementById('ch-5only').checked = cards.length > 0 && cards.length <= 5;
+      const qSel = document.getElementById('ch-quality');
+      if (pull.bestQuality) {
+        const v = pull.bestQuality === 'TIER_0' ? 'star' : pull.bestQuality.replace('TIER_', 't').toLowerCase();
+        if ([...qSel.options].some(o => o.value === v)) qSel.value = v;
+      }
+
+      if (!chPoolData) { await chLoadPool(); }
+      chGenerate();
+
+      const withLeague = cards.filter(c => c.competition).length;
+      const withNation = cards.filter(c => c.country).length;
+      setHint(`Craft geladen: ${cards.length} Karten · ${pull.rarity?.replace('_', ' ') || ''}`
+            + ` · Liga bei ${withLeague}, Nation bei ${withNation} Karten aufgedeckt`, true);
+    } catch (e) {
+      setHint('Import fehlgeschlagen: ' + e.message, false);
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
   }
 
   function chUpdateCard(sel) {
