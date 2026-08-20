@@ -1959,6 +1959,9 @@
       <!-- Chart -->
       <div class="chart-card" id="chart-section" style="display:none">
         <div class="card-title">// Value Over Time</div>
+        <div style="font-size:10px;color:var(--muted);margin:-6px 0 8px;font-family:'IBM Plex Mono',monospace">
+          Tipp: Klick auf eine Seltenheit in der Legende blendet sie aus bzw. wieder ein.
+        </div>
         <div class="chart-container">
           <canvas id="craftChart"></canvas>
         </div>
@@ -3031,7 +3034,9 @@
         pointBackgroundColor: meta.col,
         pointRadius: allSorted.map(c => ((c.scarcity||'limited') === sc ? 5 : 0)),
         pointHoverRadius: 7,
-        spanGaps: false, tension: 0.3, fill: false,
+        // Linie über Lücken hinweg durchziehen: eine Seltenheit wird als
+        // durchgehender Verlauf gezeigt, auch wenn dazwischen andere Crafts liegen.
+        spanGaps: true, tension: 0.3, fill: false,
       }];
     });
 
@@ -3043,7 +3048,15 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: '#5a5a72', font: { family: 'IBM Plex Mono', size: 10 }, boxWidth: 12 } },
+          // Klick auf einen Legendeneintrag blendet die Seltenheit aus/ein (Chart.js-Standard).
+          legend: {
+            labels: {
+              color: '#5a5a72', font: { family: 'IBM Plex Mono', size: 10 },
+              boxWidth: 12, usePointStyle: true, pointStyle: 'circle', padding: 14,
+            },
+            onHover: (e) => { e.native.target.style.cursor = 'pointer'; },
+            onLeave: (e) => { e.native.target.style.cursor = 'default'; },
+          },
           tooltip: {
             backgroundColor: '#18181f', borderColor: '#22222e', borderWidth: 1,
             titleColor: '#e8e8f0', bodyColor: '#e8e8f0',
