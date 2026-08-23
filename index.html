@@ -2171,7 +2171,8 @@
       const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
-        body: JSON.stringify({ email, password })
+        // site-Kennung: craftlog.pro und sorion.pro teilen EINE Nutzerverwaltung
+        body: JSON.stringify({ email, password, data: { site: 'craftlog' } })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error_description || data.msg || 'Login fehlgeschlagen');
