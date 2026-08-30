@@ -3386,7 +3386,9 @@
     const fiveOnly  = document.getElementById('ch-5only').checked;
     const drawType  = document.getElementById('ch-drawtype').value;
     const quality   = document.getElementById('ch-quality').value;
-    const count     = fiveOnly ? 5 : 10;
+    // Bei importiertem Craft gilt die echte Kartenanzahl aus dem Pull
+    // (z. B. „Best 5"-Clue → 5 Karten), sonst die manuelle Auswahl.
+    const count     = (chPullCards && chPullCards.length) ? chPullCards.length : (fiveOnly ? 5 : 10);
     const probs     = drawType === 'special' ? TIER_PROBS_SPECIAL : TIER_PROBS_STANDARD;
 
     const grid = document.getElementById('ch-cards-grid');
@@ -3506,6 +3508,10 @@
       const data = await res.json();
       if (data?.error) { setHint('Sorare-Abfrage fehlgeschlagen: ' + data.error, false); return; }
 
+      // DIAGNOSE: vollständige Antwort in der Browser-Konsole ausgeben (F12),
+      // damit sichtbar ist, welche Felder Sorare je Karte wirklich liefert.
+      try { console.log('[CraftLog] cardPull roh:', JSON.stringify(data, null, 2)); } catch (_) {}
+
       const pull = data?.pull;
       if (!pull) {
         setHint('Kein laufender Craft. Starte in Sorare einen Craft — solange er offen ist, kannst du ihn hier laden.', false);
@@ -3532,8 +3538,16 @@
 
       const withLeague = cards.filter(c => c.competition).length;
       const withNation = cards.filter(c => c.country).length;
-      setHint(`Craft geladen: ${cards.length} Karten · ${pull.rarity?.replace('_', ' ') || ''}`
-            + ` · Liga bei ${withLeague}, Nation bei ${withNation} Karten aufgedeckt`, true);
+      const withTier   = cards.filter(c => c.quality).length;
+      const mappedLeag = cards.filter(c => chResolveLeague(c.competition)).length;
+      const mappedNat  = cards.filter(c => chResolveNation(c.country)).length;
+
+      let msg = `Craft geladen: ${cards.length} Karten · ${pull.rarity?.replace('_', ' ') || ''}`
+              + ` · Sorare liefert: Liga ${withLeague}, Nation ${withNation}, Tier ${withTier}`;
+      if (withLeague && mappedLeag < withLeague) msg += ` · ⚠ nur ${mappedLeag}/${withLeague} Ligen im Pool zuordenbar`;
+      if (withNation && mappedNat  < withNation) msg += ` · ⚠ nur ${mappedNat}/${withNation} Nationen zuordenbar`;
+      if (!withLeague && !withNation && !withTier) msg += ' · Sorare hat keine Clue-Daten geliefert (Details in der Konsole, F12)';
+      setHint(msg, true);
     } catch (e) {
       setHint('Import fehlgeschlagen: ' + e.message, false);
     } finally {
