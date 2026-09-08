@@ -1959,7 +1959,13 @@
       <!-- Chart -->
       <div class="chart-card" id="chart-section" style="display:none">
         <div class="card-title">// Value Over Time</div>
-        <div style="font-size:10px;color:var(--muted);margin:-6px 0 8px;font-family:'IBM Plex Mono',monospace">
+        <div class="scarcity-toggle" id="chart-toggle" style="margin:-2px 0 8px">
+          <button class="sc-btn active" id="cs-all"        onclick="setChartScarcity('all')">Alle</button>
+          <button class="sc-btn lim"    id="cs-limited"    onclick="setChartScarcity('limited')">◆ Limited</button>
+          <button class="sc-btn rar"    id="cs-rare"       onclick="setChartScarcity('rare')">◆ Rare</button>
+          <button class="sc-btn sr"     id="cs-super_rare" onclick="setChartScarcity('super_rare')">◆ SR</button>
+        </div>
+        <div id="chart-note" style="font-size:10px;color:var(--muted);margin:0 0 8px;font-family:'IBM Plex Mono',monospace">
           Tipp: Klick auf eine Seltenheit in der Legende blendet sie aus bzw. wieder ein.
         </div>
         <div class="chart-container">
@@ -3014,17 +3020,56 @@
   }
 
   // ── Chart — own crafts ────────────────────────────────────────────────────
+  // Welche Seltenheit zeigt das Chart? 'all' oder eine einzelne.
+  // Einzelansicht = eigene Skala, damit teure Rare-Karten die Limited-Werte
+  // nicht zu einer flachen Linie zusammendrücken.
+  let chartScarcity = 'all';
+
+  function setChartScarcity(sc) {
+    chartScarcity = sc;
+    ['all', ...SCARCITIES].forEach(k => {
+      const b = document.getElementById('cs-' + k);
+      if (b) b.classList.toggle('active', k === sc);
+    });
+    renderChart();
+  }
+
   function renderChart() {
     const section = document.getElementById('chart-section');
     if (crafts.length < 2) { section.style.display = 'none'; return; }
     section.style.display = 'block';
 
-    const allSorted = [...crafts].sort((a,b) => a.date.localeCompare(b.date));
-    const labels    = allSorted.map((c, i) => `#${i+1} ${c.name.split(' ').pop()}`);
+    // Schalter nur für Seltenheiten anbieten, die es auch gibt
+    SCARCITIES.forEach(sc => {
+      const b = document.getElementById('cs-' + sc);
+      if (b) b.style.display = crafts.some(c => (c.scarcity || 'limited') === sc) ? '' : 'none';
+    });
 
-    const chartDatasets = SCARCITIES.flatMap(sc => {
+    const base = chartScarcity === 'all'
+      ? crafts
+      : crafts.filter(c => (c.scarcity || 'limited') === chartScarcity);
+
+    const allSorted = [...base].sort((a,b) => a.date.localeCompare(b.date));
+    const canvas    = document.getElementById('craftChart');
+    const note      = document.getElementById('chart-note');
+
+    if (allSorted.length < 2) {
+      if (chart) { chart.destroy(); chart = null; }
+      canvas.style.display = 'none';
+      note.textContent = `Für diese Seltenheit ${allSorted.length === 1 ? 'gibt es erst 1 Craft' : 'gibt es noch keine Crafts'} — für einen Verlauf sind mindestens 2 nötig.`;
+      return;
+    }
+    canvas.style.display = '';
+    note.textContent = chartScarcity === 'all'
+      ? 'Tipp: Klick auf eine Seltenheit in der Legende blendet sie aus bzw. wieder ein.'
+      : 'Eigene Skala nur für diese Seltenheit — Ausreißer anderer Seltenheiten verzerren sie nicht.';
+
+    const labels = allSorted.map((c, i) => `#${i+1} ${c.name.split(' ').pop()}`);
+
+    const shown = chartScarcity === 'all' ? SCARCITIES : [chartScarcity];
+    const chartDatasets = shown.flatMap(sc => {
       const meta   = SCARCITY_META[sc];
-      const subset = crafts.filter(c => (c.scarcity || 'limited') === sc);
+      const subset = allSorted.filter(c => (c.scarcity || 'limited') === sc);
       if (!subset.length) return [];
       const data = allSorted.map(c => ((c.scarcity || 'limited') === sc ? c.value : null));
       return [{
@@ -3051,6 +3096,7 @@
         plugins: {
           // Klick auf einen Legendeneintrag blendet die Seltenheit aus/ein (Chart.js-Standard).
           legend: {
+            display: shown.length > 1,   // in der Einzelansicht gibt es nichts zu schalten
             labels: {
               color: '#5a5a72', font: { family: 'IBM Plex Mono', size: 10 },
               boxWidth: 12, usePointStyle: true, pointStyle: 'circle', padding: 14,
